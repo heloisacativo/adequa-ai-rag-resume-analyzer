@@ -1,0 +1,33 @@
+# Dependências LEVES: Groq (API) + Hugging Face Embeddings (API). Sem Ollama, sem PyTorch/sentence-transformers.
+# .env: USE_GROQ=true, GROQ_API_KEY=..., HUGGINGFACE_TOKEN=...
+# Instalação: pip install -r requirements-light.txt
+
+fastapi
+uvicorn[standard]
+python-multipart
+dishka
+pydantic
+pydantic-settings
+email-validator
+sqlalchemy
+alembic
+aiomysql
+pymysql
+aiosqlite
+asyncpg
+passlib[bcrypt]
+bcrypt==4.0.1
+pyjwt
+llama-index-core
+llama-index-readers-file
+llama-index-llms-groq
+groq
+llama-index-embeddings-huggingface-api
+pymupdf
+python-docx
+pandas
+httpx
+faststream
+redis
+structlog
+python-dotenv
