@@ -5,6 +5,52 @@ import { Briefcase, User, Loader2, Building2, UserCircle } from 'lucide-react';
 import { useToast } from '../hooks/use-toats';
 import adequa from '../../src/assets/adequa.png';
 
+const NeoInput = ({ label, id, type, placeholder, value, onChange, disabled, decorativePosition = "right" }: {
+  label: string;
+  id: string;
+  type: string;
+  placeholder: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  disabled: boolean;
+  decorativePosition?: string;
+}) => (
+  <div className="space-y-1 min-[360px]:space-y-2 relative group min-w-0">
+    <label htmlFor={id} className="block text-sm min-[360px]:text-base text-neutral-900 uppercase tracking-wider text-neo-secondary">
+      {label}
+    </label>
+    <div className="relative">
+      <input
+        id={id}
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        className="
+        w-full min-w-0 p-2 rounded-none text-sm min-[360px]:text-base font-bold bg-neo-primary text-neo-secondary
+        border-2 min-[360px]:border-4 border-neo-secondary border-thin
+        placeholder:text-gray-500 placeholder:font-medium
+        transition-all duration-200 ease-in-out
+        outline-none
+      "
+      />
+      
+      {/* Elementos decorativos "Glitch" que aparecem no Hover */}
+      <div className={`
+        absolute -top-2 w-4 h-4 bg-neo-primary border-2 border-black 
+        hidden group-hover:block animate-bounce
+        ${decorativePosition === 'right' ? '-right-2' : '-left-2'}
+      `} />
+      <div className={`
+        absolute -bottom-2 w-3 h-3 bg-yellow-400 border-2 border-black
+        hidden group-hover:block animate-ping
+        ${decorativePosition === 'left' ? '-right-1' : '-left-1'}
+      `} />
+    </div>
+  </div>
+);
+
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -60,48 +106,6 @@ export default function RegisterPage() {
       });
     }
   };
-
-  // 1. Componente Reutilizável para o Input (Reduz repetição e padroniza o estilo)
-  const NeoInput = ({ label, id, type, placeholder, value, onChange, disabled, decorativePosition = "right" }: {
-    label: string;
-    id: string;
-    type: string;
-    placeholder: string;
-    value: string;
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    disabled: boolean;
-    decorativePosition?: string;
-  }) => (
-    <div className="space-y-1 min-[360px]:space-y-2 relative group min-w-0">
-      <label htmlFor={id} className="block text-sm min-[360px]:text-base text-neutral-900 uppercase tracking-wider text-neo-secondary">
-        {label}
-      </label>
-      <div className="relative">
-        <input
-          id={id}
-          type={type}
-          placeholder={placeholder}
-          value={value}
-          onChange={onChange}
-          disabled={disabled}
-          className="
-          w-full min-w-0 p-2 rounded-none text-sm min-[360px]:text-base font-bold bg-neo-primary text-neo-secondary
-          border-2 min-[360px]:border-4 border-neo-secondary border-thin
-          placeholder:text-gray-500 placeholder:font-medium
-          transition-all duration-200 ease-in-out
-          outline-none
-        "
-        />
-        
-        {/* Elementos decorativos "Glitch" que aparecem no Hover */}
-        <div className={`
-          absolute -top-2 w-4 h-4 bg-neo-primary border-2 border-black 
-          hidden group-hover:block animate-bounce
-          ${decorativePosition === 'right' ? '-right-2' : '-left-2'}
-        `}></div>
-      </div>
-    </div>
-  );
 
   return (
     <div className="min-h-screen min-h-dvh bg-neo-primary flex items-center justify-center p-2 min-[360px]:p-3 sm:p-4 page-padding relative overflow-hidden">
