@@ -129,7 +129,7 @@ async def download_resume(
 ):
     """Download um currículo específico"""
     
-    resumes_dto = await use_case.execute(user_id=current_user.user_id)
+    resumes_dto = await use_case.execute(user_id=current_user.id)
     
     resume = next((r for r in resumes_dto if str(r.resume_id) == resume_id), None)
     
@@ -199,7 +199,7 @@ async def delete_resume(
     except ValueError:
         raise HTTPException(status_code=400, detail="ID do currículo inválido")
     
-    deleted = await use_case.execute(uuid_resume_id, current_user.user_id)
+    deleted = await use_case.execute(uuid_resume_id, current_user.id)
     
     if not deleted:
         raise HTTPException(status_code=404, detail="Currículo não encontrado")
