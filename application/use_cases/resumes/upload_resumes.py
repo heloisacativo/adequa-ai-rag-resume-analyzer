@@ -17,6 +17,7 @@ class UploadResumesUseCase:
     indexer: IndexerProtocol
     storage_dir: Path
     s3_storage: Optional[object] = None  # S3StorageService
+    sqlite_storage: Optional[object] = None  # SQLiteFileStorageService
     
     async def execute(
         self, 
@@ -38,7 +39,7 @@ class UploadResumesUseCase:
         
         # 1. Salva arquivos
         for filename, content in files:
-            file_path = self._save_file(filename, content)
+            file_path = await self._save_file(filename, content)
             saved_paths.append(file_path)
         
         # 2. Indexa documentos
@@ -82,11 +83,16 @@ class UploadResumesUseCase:
             resumes=resume_dtos
         )
     
-    def _save_file(self, filename: str, content: bytes) -> Path:
-        """Salva arquivo usando S3 se disponível, senão usa armazenamento local"""
+    async def _save_file(self, filename: str, content: bytes) -> Path:
+        """Salva arquivo usando SQLite, S3 se disponível, senão usa armazenamento local"""
         ext = Path(filename).suffix.lower()
         
-        if self.s3_storage:
+        if self.sqlite_storage:
+            # Upload para SQLite (PythonAnywhere)
+            sqlite_path = await self.sqlite_storage.upload_file(filename, content, ext)
+            return Path(sqlite_path)
+            
+        elif self.s3_storage:
             # Upload para S3/DigitalOcean Spaces
             s3_key = self.s3_storage.upload_file(filename, content, ext)
             # Retorna um Path "virtual" com a chave S3

@@ -26,6 +26,10 @@ class AISettings(BaseSettings):
     s3_bucket_name: str = Field(default="")
     s3_folder_prefix: str = Field(default="uploaded_files")  # pasta dentro do bucket
     
+    # SQLite Storage Settings (para usar com PythonAnywhere)
+    use_sqlite_storage: bool = Field(default=False)
+    sqlite_storage_url: str = Field(default="")  # URL do SQLite no PythonAnywhere
+    
     vector_store_dir: str = Field(default="./vector_stores/resumes")
     storage_dir: str = Field(default="./uploaded_files")  # fallback local
     vector_store_type: str = Field(default="faiss")

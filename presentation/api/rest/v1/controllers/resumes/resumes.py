@@ -138,7 +138,36 @@ async def download_resume(
     
     file_path_str = str(resume.file_path)
     
-    if file_path_str.startswith("s3://"):
+    # Verifica se é um arquivo SQLite
+    if file_path_str.startswith("sqlite://"):
+        # Download do SQLite
+        try:
+            from config.ai.ai import AISettings
+            from infrastructures.storage.sqlite_storage import SQLiteFileStorageService
+            from fastapi.responses import StreamingResponse
+            import io
+            
+            ai_settings = AISettings()
+            if not ai_settings.use_sqlite_storage:
+                raise HTTPException(status_code=500, detail="SQLite storage não configurado")
+                
+            sqlite_storage = SQLiteFileStorageService(ai_settings.sqlite_storage_url)
+            
+            # Remove o prefixo sqlite:// para obter a chave
+            file_content = await sqlite_storage.download_file(file_path_str)
+            
+            return StreamingResponse(
+                io.BytesIO(file_content),
+                media_type='application/octet-stream',
+                headers={"Content-Disposition": f"attachment; filename={resume.file_name}"}
+            )
+            
+        except FileNotFoundError:
+            raise HTTPException(status_code=404, detail=f"Arquivo não encontrado no SQLite: {file_path_str}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Erro ao fazer download do SQLite: {str(e)}")
+    
+    elif file_path_str.startswith("s3://"):
         # Download do S3
         try:
             from config.ai.ai import AISettings

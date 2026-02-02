@@ -32,3 +32,5 @@ redis
 structlog
 python-dotenv
 boto3
+aiosqlite
+httpx
