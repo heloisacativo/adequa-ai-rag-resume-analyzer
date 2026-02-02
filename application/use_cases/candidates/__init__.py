@@ -1,0 +1,1 @@
+"""Use cases para candidatos."""
