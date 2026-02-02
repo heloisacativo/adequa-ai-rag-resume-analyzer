@@ -436,7 +436,9 @@ class AIProvider(Provider):
     @provide(scope=Scope.APP)
     def get_ingestor(self, ai_settings: AISettings) -> IngestionProtocol:
         from pathlib import Path
-        return DocumentIngestor(storage_dir=Path(ai_settings.storage_dir))
+        storage_path = Path(ai_settings.storage_dir)
+        storage_path.mkdir(parents=True, exist_ok=True)
+        return DocumentIngestor(storage_dir=storage_path)
 
     @provide(scope=Scope.APP)
     def get_indexer(
@@ -477,11 +479,15 @@ class ResumeUseCaseProvider(Provider):
     ) -> UploadResumesUseCase:
         from pathlib import Path
 
+        storage_path = Path(ai_settings.storage_dir)
+        # Cria o diretório base se não existir
+        storage_path.mkdir(parents=True, exist_ok=True)
+        
         return UploadResumesUseCase(
             uow=uow,
             repository=resume_repository,
             indexer=indexer,
-            storage_dir=Path(ai_settings.storage_dir)
+            storage_dir=storage_path
         )
 
     @provide(scope=Scope.REQUEST)
