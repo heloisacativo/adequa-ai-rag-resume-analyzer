@@ -1,4 +1,5 @@
 import os
+import json
 from dotenv import load_dotenv
 
 load_dotenv()  # Adicione esta linha logo no início do arquivo
@@ -21,6 +22,19 @@ from presentation.api.rest.v1.routers import api_v1_router
 
 setup_logging()
 logger = structlog.get_logger(__name__)
+
+
+def get_cors_origins():
+    raw_origins = os.getenv("CORS_ORIGINS")
+    
+    if raw_origins:
+        try:
+            return json.loads(raw_origins)
+        except json.JSONDecodeError:
+            print("❌ Erro ao decodificar CORS_ORIGINS. Usando ['*']")
+            return ["*"]
+    
+    return ["*"]
 
 
 @asynccontextmanager
@@ -91,9 +105,11 @@ def create_app() -> FastAPI:
         openapi_url="/api/openapi.json",
     )
 
-    app.add_middleware(  # type: ignore[call-arg]
-        CORSMiddleware,  # type: ignore[arg-type]
-        allow_origins=["*"],
+    origins = get_cors_origins()
+
+    app.add_middleware(  
+        CORSMiddleware,  
+        allow_origins=origins, 
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
