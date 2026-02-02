@@ -45,33 +45,44 @@ class AnalyzeCandidatesUseCase:
                 ranking=[]
             )
         
-        # Modelo LLM - Inicialização mais robusta para evitar problemas de contexto
+        # Modelo LLM - Inicialização robusta com teste de conectividade
+        llm_model = None
         try:
             from llama_index.llms.groq import Groq
             import os
             
-            # Tenta usar Settings primeiro, mas fallback para inicialização manual se necessário
-            llm_model = Settings.llm
+            # Verifica se GROQ_API_KEY existe e não está vazia
+            groq_api_key = os.getenv("GROQ_API_KEY")
+            if not groq_api_key or groq_api_key.strip() == "":
+                raise ValueError("GROQ_API_KEY não encontrada ou está vazia nas variáveis de ambiente")
             
-            # Verifica se o LLM está configurado corretamente
-            if not llm_model or not hasattr(llm_model, 'api_key') or not llm_model.api_key:
-                print("[WARNING] LLM global não configurado corretamente, inicializando manualmente...")
-                groq_api_key = os.getenv("GROQ_API_KEY")
-                if not groq_api_key:
-                    raise ValueError("GROQ_API_KEY não encontrada nas variáveis de ambiente")
-                
-                llm_model = Groq(
-                    model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
-                    api_key=groq_api_key,
-                    temperature=0,
-                )
-                print("[INFO] LLM inicializado manualmente com sucesso")
+            print(f"[DEBUG] Utilizando GROQ_API_KEY: {groq_api_key[:8]}...")
+            
+            # Cria instância do LLM sempre nova para evitar problemas de contexto
+            llm_model = Groq(
+                model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+                api_key=groq_api_key,
+                temperature=0,
+            )
+            
+            # Testa conectividade com uma pergunta simples
+            try:
+                test_response = await llm_model.acomplete("Responda apenas: OK")
+                print(f"[DEBUG] Teste de conectividade LLM: {str(test_response)[:50]}")
+            except Exception as test_e:
+                print(f"[ERROR] Teste de conectividade falhou: {str(test_e)}")
+                if "401" in str(test_e) or "Unauthorized" in str(test_e):
+                    raise ValueError(f"GROQ_API_KEY inválida ou expirada: {str(test_e)}")
+                else:
+                    raise ValueError(f"Erro de conectividade com Groq API: {str(test_e)}")
+            
+            print("[INFO] LLM inicializado e testado com sucesso")
             
         except Exception as e:
-            print(f"[ERROR] Falha ao configurar LLM: {str(e)}")
+            print(f"[ERROR] Falha ao configurar/testar LLM: {str(e)}")
             return SearchResponseDTO(
                 query=query,
-                response=f"Erro na configuração do LLM: {str(e)}",
+                response=f"❌ Erro na configuração do LLM: {str(e)}\n\nVerifique se a GROQ_API_KEY no arquivo .env está correta e não expirou.",
                 total_candidates=0,
                 ranking=[]
             )
@@ -142,8 +153,10 @@ JUSTIFICATIVA: [explique por que essa nota, mencione gaps específicos]
 Seja honesto e crítico. Não dê notas altas sem justificativa."""
 
             try:
+                print(f"[DEBUG] Enviando prompt para LLM para candidato: {file_name}")
                 response = await llm_model.acomplete(prompt)
                 response_text = str(response)
+                print(f"[DEBUG] Resposta recebida do LLM: {response_text[:100]}...")
                 
                 # Parse da resposta estruturada
                 resultado = {
