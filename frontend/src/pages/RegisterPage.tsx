@@ -62,7 +62,16 @@ export default function RegisterPage() {
   };
 
   // 1. Componente Reutilizável para o Input (Reduz repetição e padroniza o estilo)
-  const NeoInput = ({ label, id, type, placeholder, value, onChange, disabled, decorativePosition = "right" }) => (
+  const NeoInput = ({ label, id, type, placeholder, value, onChange, disabled, decorativePosition = "right" }: {
+    label: string;
+    id: string;
+    type: string;
+    placeholder: string;
+    value: string;
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    disabled: boolean;
+    decorativePosition?: string;
+  }) => (
     <div className="space-y-1 min-[360px]:space-y-2 relative group min-w-0">
       <label htmlFor={id} className="block text-sm min-[360px]:text-base text-neutral-900 uppercase tracking-wider text-neo-secondary">
         {label}
@@ -205,7 +214,7 @@ export default function RegisterPage() {
                 type="text"
                 placeholder="DIGITE SEU NOME"
                 value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFullName(e.target.value)}
                 disabled={isLoading}
                 decorativePosition="right"
               />
@@ -216,7 +225,7 @@ export default function RegisterPage() {
                 type="email"
                 placeholder="SEU@EMAIL.COM"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                 disabled={isLoading}
                 decorativePosition="left"
               />
@@ -227,7 +236,7 @@ export default function RegisterPage() {
                 type="password"
                 placeholder="••••••••"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                 disabled={isLoading}
                 decorativePosition="right"
               />

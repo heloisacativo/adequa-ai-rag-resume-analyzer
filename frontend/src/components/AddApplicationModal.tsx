@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Building2, Briefcase, Calendar, FileText, X } from 'lucide-react';
 import { useApplications } from '../contexts/ApplicationContext';
+import { API_URL } from '../lib/api';
 import type { ApplicationStatus, JobApplication } from '../types/application';
 
 export function AddApplicationModal() {

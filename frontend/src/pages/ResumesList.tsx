@@ -1,5 +1,5 @@
 import { AppLayout } from '../components/layout/AppLayout';
-import { Search, FileText, Bot, Eye, Star, Upload, Plus, Trash2, X, FileUp, Download } from 'lucide-react';
+import { Search, FileText, Upload, Plus, Trash2, X, FileUp, Download } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { ResumeStatus } from './../types/Index';
 import { format } from 'date-fns';
@@ -19,16 +19,7 @@ interface DatabaseResume {
   is_indexed: boolean;
 }
 
-// Interface local
-interface LocalResume {
-  id: string;
-  candidate_name: string;
-  file_name: string;
-  file: File;
-  fileBase64?: string;
-  uploaded_at: string;
-  status: ResumeStatus;
-}
+
 
 // Configuração de cores Neo-Brutalistas para Status
 const statusStyles: Record<string, string> = {
@@ -119,7 +110,7 @@ export default function ResumesList() {
 
   const handleDownload = async (resume: DatabaseResume) => {
     try {
-      const response = await fetch(`${resumeService.baseUrl}/resumes/${resume.resume_id}/download`, {
+      const response = await fetch(`${resumeService.getBaseUrl()}/resumes/${resume.resume_id}/download`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
         },

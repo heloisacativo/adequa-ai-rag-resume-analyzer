@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileSearch, Briefcase, Settings, FileText, Brain } from 'lucide-react';
+import { LayoutDashboard, FileSearch, Briefcase, FileText, Brain } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import adequa from '../../src/assets/adequa.png';

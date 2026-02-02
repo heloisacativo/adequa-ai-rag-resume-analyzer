@@ -124,9 +124,7 @@ function ResumeAnalysis() {
     return 'bg-red-400 border-red-900 text-black';
   };
 
-  const handleAddApplication = () => {
-    setIsModalOpen(true);
-  };
+
 
   const handleCreateApplication = async (data: CreateJobApplicationRequest) => {
     setIsCreating(true);

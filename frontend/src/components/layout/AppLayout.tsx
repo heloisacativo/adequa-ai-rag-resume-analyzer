@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   FileText,
   LogOut,
-  ChevronDown,
   User,
   FileSearch,
   Brain,

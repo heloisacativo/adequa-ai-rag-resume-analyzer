@@ -95,6 +95,16 @@ export interface ChatMessagesResponse {
   messages: ChatMessage[];
 }
 
+export interface IndexInfo {
+  id: string;
+  name: string;
+  created_at: string;
+  vector_index_id: string;
+  first_uploaded_at: string;
+  resume_count: number;
+  document_count?: number;
+}
+
 export interface ListIndexesResponse {
   indexes: Record<string, IndexInfo>;
 }
@@ -145,6 +155,10 @@ export interface JobListResponse {
 
 class ResumeService {
   private baseUrl = `${API_URL}/api/v1`;
+
+  public getBaseUrl(): string {
+    return this.baseUrl;
+  }
 
   async uploadResumes(files: File[]): Promise<UploadResumeResponse> {
     const formData = new FormData();
@@ -305,7 +319,7 @@ class JobService {
   async listJobs(): Promise<JobListResponse> {
     const response = await fetch(`${this.baseUrl}/jobs`, {
       headers: {
-        // 'Authorization': `Bearer ${this.getToken()}`, // Uncomment when auth is implemented
+        // 'Authorization': `Bearer ${this.getToken()}`,
       },
     });
 

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { JobApplication, ApplicationStatus } from '../types/application';
 import { API_URL } from '../lib/api';

@@ -373,7 +373,7 @@ export default function HistoryChat({ indexId: initialIndexId }: { indexId?: str
                 name="queryMode"
                 value="resumes"
                 checked={queryMode === "resumes"}
-                onChange={(e) => setQueryMode("resumes")}
+                onChange={() => setQueryMode("resumes")}
                 className="hidden" // Esconde o rádio padrão feio
               />
               <FileText className="w-5 h-5" />
@@ -400,7 +400,7 @@ export default function HistoryChat({ indexId: initialIndexId }: { indexId?: str
                 name="queryMode"
                 value="job"
                 checked={queryMode === "job"}
-                onChange={(e) => setQueryMode("job")}
+                onChange={() => setQueryMode("job")}
                 className="hidden"
               />
               <div className="flex items-center gap-3">

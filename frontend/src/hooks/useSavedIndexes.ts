@@ -41,13 +41,11 @@ export function useSavedIndexes() {
     loadIndexes();
   }, []);
 
-  const saveIndex = async (indexId: string, name: string, resumeCount?: number) => {
-    // Recarrega os índices do servidor após upload
+  const saveIndex = async (_indexId: string, _name: string, _resumeCount?: number) => {
     await loadIndexes();
   };
 
-  const removeIndex = async (indexId: string) => {
-    // Recarrega os índices do servidor
+  const removeIndex = async (_indexId: string) => {
     await loadIndexes();
   };
 
