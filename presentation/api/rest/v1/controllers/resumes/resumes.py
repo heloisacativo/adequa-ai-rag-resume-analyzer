@@ -1,8 +1,9 @@
 from typing import Annotated
 
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from fastapi.responses import FileResponse
 from dishka.integrations.fastapi import FromDishka, inject
+from presentation.api.rest.v1.dependencies import get_current_user, CurrentUser
 
 from application.use_cases.resumes.upload_resumes import UploadResumesUseCase
 from application.use_cases.resumes.ensure_upload_user import (
@@ -28,7 +29,7 @@ async def upload_resumes(
     files: list[UploadFile] = File(...),
     use_case: FromDishka[UploadResumesUseCase] = None,
     ensure_upload_user: FromDishka[EnsureResumeUploadUserUseCase] = None,
-    # TODO: current_user: User = Depends(get_current_user) → usar current_user.user_id
+    current_user: CurrentUser = Depends(get_current_user)
 ):
     """Upload e indexa currículos - até 20 currículos por vez (acumulativo por usuário)."""
     
@@ -50,7 +51,7 @@ async def upload_resumes(
         file_data.append((file.filename, content))
     
     # TODO: quando auth estiver ativo, usar current_user.user_id em vez de RESUME_UPLOAD_USER_ID
-    user_id = RESUME_UPLOAD_USER_ID
+    user_id = current_user.id
     await ensure_upload_user.execute(user_id)
     
     # Adiciona os novos currículos (não remove os existentes; limite total por usuário no use case)
@@ -77,14 +78,11 @@ async def upload_resumes(
 @inject
 async def list_indexes(
     use_case: FromDishka[ListIndexesUseCase] = None,
-    # TODO: current_user: User = Depends(get_current_user)
+    current_user: CurrentUser = Depends(get_current_user)
 ):
     """Lista todos os índices vetoriais salvos com seus currículos"""
     
-    # TODO: Pegar user_id do token
-    user_id = None
-    
-    indexes_dict = await use_case.execute(user_id=user_id)
+    indexes_dict = await use_case.execute(user_id=current_user.id)
     
     # Converte para o formato de resposta
     indexes_response = {
@@ -98,14 +96,11 @@ async def list_indexes(
 @inject
 async def list_resumes(
     use_case: FromDishka[ListResumesUseCase] = None,
-    # TODO: current_user: User = Depends(get_current_user)
+    current_user: CurrentUser = Depends(get_current_user)
 ):
     """Lista todos os currículos salvos"""
     
-    # TODO: Pegar user_id do token
-    user_id = None
-    
-    resumes_dto = await use_case.execute(user_id=user_id)
+    resumes_dto = await use_case.execute(user_id=current_user.id)
     
     resumes_schema = [
         ResumeSchema(

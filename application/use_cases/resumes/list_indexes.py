@@ -16,42 +16,48 @@ class ListIndexesUseCase:
     
     async def execute(self, user_id: UUID | None = None) -> dict[str, dict]:
         """
-        Lista todos os índices vetoriais agrupados.
+        Lista todos os índices vetoriais agrupados para o usuário específico.
         
+        Args:
+            user_id: ID do usuário para filtrar os currículos
+            
         Returns:
             Dict com vector_index_id como chave e informações do índice
         """
-        # Busca todos os índices únicos
-        all_index_ids = await self.repository.get_all_vector_index_ids()
+        if not user_id:
+            return {} 
+        
+        user_resumes = await self.repository.get_by_user_id(user_id)
+        
+        if not user_resumes:
+            return {}  
         
         indexes_info = {}
         
-        # Para cada índice, busca os currículos e agrega informações
-        for index_id in all_index_ids:
-            resumes = await self.repository.get_by_vector_index_id(index_id)
+        for resume in user_resumes:
+            index_id = resume.vector_index_id
+            if not index_id:
+                continue 
             
-            # Filtra por usuário se fornecido
-            if user_id:
-                resumes = [r for r in resumes if r.uploaded_by_user_id == user_id]
+            if index_id not in indexes_info:
+                indexes_info[index_id] = {
+                    "vector_index_id": index_id,
+                    "resume_count": 0,
+                    "first_uploaded_at": None,
+                    "resumes": []
+                }
             
-            if not resumes:
-                continue
+            indexes_info[index_id]["resume_count"] += 1
+            indexes_info[index_id]["resumes"].append({
+                "resume_id": str(resume.resume_id),
+                "candidate_name": resume.candidate_name,
+                "file_name": resume.file_name,
+                "uploaded_at": resume.uploaded_at.isoformat(),
+                "is_indexed": resume.is_indexed
+            })
             
-            # Agrega informações
-            indexes_info[index_id] = {
-                "vector_index_id": index_id,
-                "resume_count": len(resumes),
-                "first_uploaded_at": min(r.uploaded_at for r in resumes).isoformat(),
-                "resumes": [
-                    {
-                        "resume_id": str(r.resume_id),
-                        "candidate_name": r.candidate_name,
-                        "file_name": r.file_name,
-                        "uploaded_at": r.uploaded_at.isoformat(),
-                        "is_indexed": r.is_indexed
-                    }
-                    for r in resumes
-                ]
-            }
+            if (indexes_info[index_id]["first_uploaded_at"] is None or 
+                resume.uploaded_at.isoformat() < indexes_info[index_id]["first_uploaded_at"]):
+                indexes_info[index_id]["first_uploaded_at"] = resume.uploaded_at.isoformat()
         
         return indexes_info

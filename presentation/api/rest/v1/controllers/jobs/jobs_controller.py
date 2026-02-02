@@ -4,6 +4,7 @@ import dataclasses
 
 from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import APIRouter, Depends, HTTPException, status
+from presentation.api.rest.v1.dependencies import get_current_user, CurrentUser
 
 from application.dtos.jobs.job import CreateJobDTO, UpdateJobDTO, JobTypeDTO, JobStatusDTO
 from application.use_cases.jobs.job import (
@@ -31,11 +32,10 @@ router = APIRouter(prefix="/jobs", tags=["Jobs"])
 async def create_job(
     request: CreateJobRequest,
     use_case: FromDishka[CreateJobUseCase] = None,
-    # TODO: Add user authentication dependency
+    current_user: CurrentUser = Depends(get_current_user)
 ) -> JobResponseSchema:
     """Create a new job posting."""
-    # TODO: Get user_id from authenticated user
-    user_id = UUID("00000000-0000-0000-0000-000000000000")  # Temporary placeholder
+    user_id = UUID(current_user.id)
 
     dto = CreateJobDTO(
         title=request.title,
@@ -56,10 +56,11 @@ async def create_job(
 )
 @inject
 async def list_jobs(
-    user_id: UUID | None = None,  # TODO: Make this come from authenticated user
+    current_user: CurrentUser = Depends(get_current_user),
     use_case: FromDishka[ListJobsUseCase] = None,
 ) -> JobListResponseSchema:
-    """List all jobs. If user_id is provided, list only jobs created by that user."""
+    """List all jobs created by the authenticated user."""
+    user_id = UUID(current_user.id)
     job_list_dto = await use_case(user_id)
 
     return JobListResponseSchema(
