@@ -1,4 +1,6 @@
 from typing import Annotated
+from pathlib import Path
+import os
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from fastapi.responses import FileResponse
@@ -137,6 +139,13 @@ async def download_resume(
     
     if not resume:
         raise HTTPException(status_code=404, detail="Currículo não encontrado")
+    
+    # Verifica se o arquivo existe
+    file_path = Path(resume.file_path)
+    if not file_path.exists():
+        # Cria o diretório pai se não existir
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        raise HTTPException(status_code=404, detail=f"Arquivo não encontrado: {resume.file_path}")
     
     # Retorna o arquivo
     return FileResponse(
