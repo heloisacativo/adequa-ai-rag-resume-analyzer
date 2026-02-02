@@ -125,14 +125,11 @@ async def list_resumes(
 async def download_resume(
     resume_id: str,
     use_case: FromDishka[ListResumesUseCase] = None,
-    # TODO: current_user: User = Depends(get_current_user)
+    current_user: CurrentUser = Depends(get_current_user)
 ):
     """Download um currículo específico"""
     
-    # TODO: Pegar user_id do token
-    user_id = None
-    
-    resumes_dto = await use_case.execute(user_id=user_id)
+    resumes_dto = await use_case.execute(user_id=current_user.user_id)
     
     # Encontra o currículo específico
     resume = next((r for r in resumes_dto if str(r.resume_id) == resume_id), None)
@@ -159,7 +156,7 @@ async def download_resume(
 async def delete_resume(
     resume_id: str,
     use_case: FromDishka[DeleteResumeUseCase] = None,
-    # TODO: current_user: User = Depends(get_current_user)
+    current_user: CurrentUser = Depends(get_current_user)
 ):
     """Deleta um currículo específico"""
     
@@ -169,10 +166,7 @@ async def delete_resume(
     except ValueError:
         raise HTTPException(status_code=400, detail="ID do currículo inválido")
     
-    # TODO: Pegar user_id do token
-    user_id = None
-    
-    deleted = await use_case.execute(uuid_resume_id, user_id)
+    deleted = await use_case.execute(uuid_resume_id, current_user.user_id)
     
     if not deleted:
         raise HTTPException(status_code=404, detail="Currículo não encontrado")
