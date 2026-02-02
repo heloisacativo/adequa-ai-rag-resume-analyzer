@@ -6,7 +6,7 @@ fastapi
 uvicorn[standard]
 python-multipart
 dishka
-pydantic
+pydantic>=2.0.0,<2.9.0
 pydantic-settings
 email-validator
 sqlalchemy
@@ -18,11 +18,11 @@ asyncpg
 passlib[bcrypt]
 bcrypt==4.0.1
 pyjwt
-llama-index-core
-llama-index-readers-file
-llama-index-llms-groq
-groq
-llama-index-embeddings-huggingface-api
+llama-index-core>=0.10.0,<0.12.0
+llama-index-readers-file>=0.1.0
+llama-index-llms-groq>=0.1.0
+groq>=0.4.0
+llama-index-embeddings-huggingface-api>=0.2.0
 pymupdf
 python-docx
 pandas
