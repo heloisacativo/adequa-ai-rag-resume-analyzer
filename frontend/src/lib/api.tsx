@@ -290,7 +290,7 @@ class JobService {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // 'Authorization': `Bearer ${this.getToken()}`, // Uncomment when auth is implemented
+        'Authorization': `Bearer ${this.getToken()}`,
       },
       body: JSON.stringify(jobData),
     });
@@ -319,7 +319,7 @@ class JobService {
   async listJobs(): Promise<JobListResponse> {
     const response = await fetch(`${this.baseUrl}/jobs`, {
       headers: {
-        // 'Authorization': `Bearer ${this.getToken()}`,
+        'Authorization': `Bearer ${this.getToken()}`,
       },
     });
 
@@ -334,7 +334,7 @@ class JobService {
   async getJob(jobId: string): Promise<Job> {
     const response = await fetch(`${this.baseUrl}/jobs/${jobId}`, {
       headers: {
-        // 'Authorization': `Bearer ${this.getToken()}`, // Uncomment when auth is implemented
+        'Authorization': `Bearer ${this.getToken()}`,
       },
     });
 
@@ -351,7 +351,7 @@ class JobService {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        // 'Authorization': `Bearer ${this.getToken()}`, // Uncomment when auth is implemented
+        'Authorization': `Bearer ${this.getToken()}`,
       },
       body: JSON.stringify(jobData),
     });
@@ -368,7 +368,7 @@ class JobService {
     const response = await fetch(`${this.baseUrl}/jobs/${jobId}`, {
       method: 'DELETE',
       headers: {
-        // 'Authorization': `Bearer ${this.getToken()}`, // Uncomment when auth is implemented
+        'Authorization': `Bearer ${this.getToken()}`,
       },
     });
 
