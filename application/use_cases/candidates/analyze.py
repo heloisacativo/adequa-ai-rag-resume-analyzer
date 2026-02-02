@@ -45,8 +45,36 @@ class AnalyzeCandidatesUseCase:
                 ranking=[]
             )
         
-        # Modelo LLM
-        llm_model = Settings.llm  # Usa o LLM global (Groq, conforme seu .env)
+        # Modelo LLM - Inicialização mais robusta para evitar problemas de contexto
+        try:
+            from llama_index.llms.groq import Groq
+            import os
+            
+            # Tenta usar Settings primeiro, mas fallback para inicialização manual se necessário
+            llm_model = Settings.llm
+            
+            # Verifica se o LLM está configurado corretamente
+            if not llm_model or not hasattr(llm_model, 'api_key') or not llm_model.api_key:
+                print("[WARNING] LLM global não configurado corretamente, inicializando manualmente...")
+                groq_api_key = os.getenv("GROQ_API_KEY")
+                if not groq_api_key:
+                    raise ValueError("GROQ_API_KEY não encontrada nas variáveis de ambiente")
+                
+                llm_model = Groq(
+                    model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+                    api_key=groq_api_key,
+                    temperature=0,
+                )
+                print("[INFO] LLM inicializado manualmente com sucesso")
+            
+        except Exception as e:
+            print(f"[ERROR] Falha ao configurar LLM: {str(e)}")
+            return SearchResponseDTO(
+                query=query,
+                response=f"Erro na configuração do LLM: {str(e)}",
+                total_candidates=0,
+                ranking=[]
+            )
 
         # 1. Recupera chunks relevantes (async para evitar "coroutine was never awaited" com instrumentação)
         retriever = index.as_retriever(similarity_top_k=50)
@@ -157,85 +185,126 @@ Seja honesto e crítico. Não dê notas altas sem justificativa."""
                 resultados.append(CandidateResultDTO(**resultado))
                 
             except Exception as e:
-                # Adiciona resultado parcial mesmo com erro
-                resultados.append(CandidateResultDTO(
-                    arquivo=file_name,
-                    nome_candidato=file_name,
-                    score=0,
-                    pontos_fortes=[],
-                    pontos_fracos=[],
-                    justificativa=f"Erro ao processar: {str(e)}",
-                    location_analysis=location_analysis
-                ))
+                print(f"[ERROR] Erro ao processar candidato {file_name}: {str(e)}")
+                # Para erros de API (como 401), ainda adiciona o candidato com score básico
+                # para que não seja perdido completamente
+                if "401" in str(e) or "Unauthorized" in str(e):
+                    # API key inválida - usa score padrão baseado na existência do candidato
+                    resultado_erro = CandidateResultDTO(
+                        arquivo=file_name,
+                        nome_candidato=file_name.replace('.pdf', '').replace('-', ' ').title(),
+                        score=60,  # Score padrão quando não consegue analisar
+                        pontos_fortes=["Candidato presente no banco de currículos"],
+                        pontos_fracos=["Análise detalhada indisponível (erro de API)"],
+                        justificativa=f"❌ Erro de autenticação na API de análise (401 Unauthorized). Verifique a GROQ_API_KEY no arquivo .env",
+                        location_analysis=location_analysis
+                    )
+                else:
+                    # Outros erros
+                    resultado_erro = CandidateResultDTO(
+                        arquivo=file_name,
+                        nome_candidato=file_name.replace('.pdf', '').replace('-', ' ').title(),
+                        score=40,  # Score baixo para erros desconhecidos
+                        pontos_fortes=[],
+                        pontos_fracos=["Erro no processamento"],
+                        justificativa=f"Erro ao processar: {str(e)}",
+                        location_analysis=location_analysis
+                    )
+                
+                resultados.append(resultado_erro)
 
-        # 4. Ordena por score e filtra candidatos descartados
+        # 4. Ordena por score (inclui candidatos com erro para debug)
         resultados_ordenados = sorted(
-            [r for r in resultados if r.score > 0],  # Só incluir candidatos com score > 0
+            resultados,  # Inclui TODOS os candidatos, mesmo com erro
             key=lambda x: x.score, 
             reverse=True
         )
         
-        candidatos_descartados = [r for r in resultados if r.score == 0]
+        # Separa candidatos válidos dos que tiveram erro de localização (score 0 por localização)
+        candidatos_validos = [r for r in resultados_ordenados if r.score > 0]
+        candidatos_descartados = [r for r in resultados_ordenados if r.score == 0]
 
         # 5. Monta resposta textual para o frontend
         if resultados_ordenados:
             melhor = resultados_ordenados[0]
-            resposta_texto = f"""
+            
+            # Verifica se há erros de API
+            candidatos_com_erro_api = [r for r in resultados_ordenados if "401 Unauthorized" in r.justificativa or "Erro de autenticação" in r.justificativa]
+            
+            if candidatos_com_erro_api:
+                resposta_texto = f"""
+⚠️ ATENÇÃO: Erro de autenticação na API do Groq (401 Unauthorized)
+Verifique a GROQ_API_KEY no arquivo .env
+
+CANDIDATOS ENCONTRADOS (análise limitada):
+"""
+                for idx, r in enumerate(resultados_ordenados, 1):
+                    resposta_texto += f"\n{idx}. {r.nome_candidato} - Score: {r.score}/100"
+                    if "401" in r.justificativa:
+                        resposta_texto += " [ERRO API]"
+                
+                resposta_texto += f"""
+
+TOTAL: {len(resultados_ordenados)} candidatos encontrados
+PROBLEMA: API key do Groq inválida ou expirada. Configure uma nova chave em .env"""
+                
+            else:
+                resposta_texto = f"""
 CANDIDATO RECOMENDADO: {melhor.nome_candidato} ({melhor.arquivo})
 
 NOTA: {melhor.score}/100
 """
-            # Adiciona informação de localização se disponível
-            if melhor.location_analysis:
-                loc = melhor.location_analysis
-                resposta_texto += f"\nLOCALIZAÇÃO: {loc.match_status}"
+                # Adiciona informação de localização se disponível
+                if melhor.location_analysis:
+                    loc = melhor.location_analysis
+                    resposta_texto += f"\nLOCALIZAÇÃO: {loc.match_status}"
+                    
+                    if loc.match_status == "REMOTE":
+                        resposta_texto += " (Vaga remota - compatível)"
+                    elif loc.match_status == "LOCATION_MATCH":
+                        resposta_texto += f" (Compatível: {loc.candidate_location})"
+                    elif loc.match_status == "WILL_RELOCATE":
+                        resposta_texto += f" (Candidato disponível: {loc.candidate_location or 'Não informado'})"
+                        resposta_texto += "\n✓ Candidato disposto a mudança"
+                    elif loc.match_status == "NO_SPECIFIC_LOCATION":
+                        resposta_texto += " (Vaga sem localização específica)"
+                    elif loc.match_status == "CANDIDATE_LOCATION_UNKNOWN":
+                        resposta_texto += f" (Vaga: {loc.job_location or 'Não especificado'} | Candidato: localização não informada)"
                 
-                if loc.match_status == "REMOTE":
-                    resposta_texto += " (Vaga remota - compatível)"
-                elif loc.match_status == "LOCATION_MATCH":
-                    resposta_texto += f" (Compatível: {loc.candidate_location})"
-                elif loc.match_status == "WILL_RELOCATE":
-                    resposta_texto += f" (Candidato disponível: {loc.candidate_location or 'Não informado'})"
-                    resposta_texto += "\n✓ Candidato disposto a mudança"
-                elif loc.match_status == "NO_SPECIFIC_LOCATION":
-                    resposta_texto += " (Vaga sem localização específica)"
-                elif loc.match_status == "CANDIDATE_LOCATION_UNKNOWN":
-                    resposta_texto += f" (Vaga: {loc.job_location or 'Não especificado'} | Candidato: localização não informada)"
-            
-            resposta_texto += f"""
+                resposta_texto += f"""
 
 ANÁLISE:
 {melhor.justificativa}
 
 RANKING COMPLETO:
 """
-            for idx, r in enumerate(resultados_ordenados, 1):
-                loc_info = ""
-                if r.location_analysis:
-                    status = r.location_analysis.match_status
-                    if status == "REMOTE":
-                        loc_info = " [REMOTO]"
-                    elif status == "LOCATION_MATCH":
-                        loc_info = " [✓ Localização]"
-                    elif status == "WILL_RELOCATE":
-                        loc_info = " [✓ Mudança]"
-                    elif status == "NO_SPECIFIC_LOCATION":
-                        loc_info = " [Sem localização]"
-                    elif status == "CANDIDATE_LOCATION_UNKNOWN":
-                        loc_info = " [Localização desconhecida]"
-                resposta_texto += f"\n{idx}. {r.nome_candidato} - Nota: {r.score}/100{loc_info}"
-            
-            # Adiciona candidatos descartados
-            if candidatos_descartados:
-                resposta_texto += "\n\nCANDIDATOS DESCARTADOS (localização incompatível):"
-                for r in candidatos_descartados:
-                    resposta_texto += f"\n• {r.nome_candidato} - MOTIVO: {r.pontos_fracos[-1] if r.pontos_fracos else 'Localização incompatível'}"
+                for idx, r in enumerate(resultados_ordenados, 1):
+                    loc_info = ""
+                    if r.location_analysis:
+                        status = r.location_analysis.match_status
+                        if status == "REMOTE":
+                            loc_info = " [REMOTO]"
+                        elif status == "LOCATION_MATCH":
+                            loc_info = " [✓ Localização]"
+                        elif status == "WILL_RELOCATE":
+                            loc_info = " [✓ Mudança]"
+                        elif status == "NO_SPECIFIC_LOCATION":
+                            loc_info = " [Sem localização]"
+                        elif status == "CANDIDATE_LOCATION_UNKNOWN":
+                            loc_info = " [Localização desconhecida]"
+                    resposta_texto += f"\n{idx}. {r.nome_candidato} - Nota: {r.score}/100{loc_info}"
+                
+                # Adiciona candidatos descartados
+                if candidatos_descartados:
+                    resposta_texto += "\n\nCANDIDATOS DESCARTADOS (localização incompatível):"
+                    for r in candidatos_descartados:
+                        resposta_texto += f"\n• {r.nome_candidato} - MOTIVO: {r.pontos_fracos[-1] if r.pontos_fracos else 'Localização incompatível'}"
         else:
             resposta_texto = "Nenhum candidato foi encontrado no índice."
 
         return SearchResponseDTO(
             query=query,
             response=resposta_texto,
-            total_candidates=len(resultados_ordenados),
+            total_candidates=len(resultados_ordenados),  # Mostra todos os candidatos, mesmo com erro
             ranking=resultados_ordenados
         )
