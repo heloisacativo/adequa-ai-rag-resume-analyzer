@@ -17,6 +17,14 @@ def create_engine(url: str, is_echo: bool = True) -> AsyncEngine:
     Returns:
         An AsyncEngine instance.
     """
+    connect_args = {}
+
+    if url.startswith(("postgresql+asyncpg://", "asyncpg://")):
+        connect_args = {
+            "statement_cache_size": 0, 
+            "prepared_statement_cache_size": 0,  
+        }
+    
     return create_async_engine(
         url=url,
         echo=is_echo,
@@ -24,7 +32,7 @@ def create_engine(url: str, is_echo: bool = True) -> AsyncEngine:
         max_overflow=30,
         pool_pre_ping=True,
         pool_recycle=3600,
-        connect_args={},
+        connect_args=connect_args,
     )
 
 
