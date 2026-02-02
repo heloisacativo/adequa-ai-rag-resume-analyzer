@@ -18,8 +18,16 @@ class AISettings(BaseSettings):
     ollama_embed_model: str = Field(default="nomic-embed-text")
     
     # Storage Settings
+    use_s3_storage: bool = Field(default=False)
+    s3_endpoint_url: str = Field(default="")  # DigitalOcean Spaces endpoint
+    s3_region: str = Field(default="nyc3")  # DigitalOcean region
+    s3_access_key: str = Field(default="")
+    s3_secret_key: str = Field(default="")
+    s3_bucket_name: str = Field(default="")
+    s3_folder_prefix: str = Field(default="uploaded_files")  # pasta dentro do bucket
+    
     vector_store_dir: str = Field(default="./vector_stores/resumes")
-    storage_dir: str = Field(default="./uploaded_files")
+    storage_dir: str = Field(default="./uploaded_files")  # fallback local
     vector_store_type: str = Field(default="faiss")
     
     # Processing Settings

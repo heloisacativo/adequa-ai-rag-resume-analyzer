@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import final
+from typing import final, Optional
 from uuid import UUID, uuid4
 
 from application.dtos.resumes.resume import UploadResultDTO, ResumeDTO
@@ -16,6 +16,7 @@ class UploadResumesUseCase:
     repository: ResumeRepositoryProtocol
     indexer: IndexerProtocol
     storage_dir: Path
+    s3_storage: Optional[object] = None  # S3StorageService
     
     async def execute(
         self, 
@@ -82,12 +83,21 @@ class UploadResumesUseCase:
         )
     
     def _save_file(self, filename: str, content: bytes) -> Path:
+        """Salva arquivo usando S3 se disponível, senão usa armazenamento local"""
         ext = Path(filename).suffix.lower()
-        subdir = self.storage_dir / ext.replace('.', '')
-        subdir.mkdir(parents=True, exist_ok=True)
-        file_path = subdir / filename
-        file_path.write_bytes(content)
-        return file_path
+        
+        if self.s3_storage:
+            # Upload para S3/DigitalOcean Spaces
+            s3_key = self.s3_storage.upload_file(filename, content, ext)
+            # Retorna um Path "virtual" com a chave S3
+            return Path(f"s3://{s3_key}")
+        else:
+            # Armazenamento local (fallback)
+            subdir = self.storage_dir / ext.replace('.', '')
+            subdir.mkdir(parents=True, exist_ok=True)
+            file_path = subdir / filename
+            file_path.write_bytes(content)
+            return file_path
     
     def _extract_name(self, path: Path) -> str:
         # Implementar extração de nome do PDF/DOCX

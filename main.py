@@ -1,6 +1,11 @@
 import os
 import json
+import warnings
 from dotenv import load_dotenv
+
+# Suprimir warnings específicos que não afetam funcionalidade
+warnings.filterwarnings("ignore", message=".*validate_default.*")
+warnings.filterwarnings("ignore", message=".*TRANSFORMERS_CACHE.*")
 
 load_dotenv()  # Adicione esta linha logo no início do arquivo
 

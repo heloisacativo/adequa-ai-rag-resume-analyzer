@@ -131,25 +131,58 @@ async def download_resume(
     
     resumes_dto = await use_case.execute(user_id=current_user.user_id)
     
-    # Encontra o currículo específico
     resume = next((r for r in resumes_dto if str(r.resume_id) == resume_id), None)
     
     if not resume:
         raise HTTPException(status_code=404, detail="Currículo não encontrado")
     
-    # Verifica se o arquivo existe
-    file_path = Path(resume.file_path)
-    if not file_path.exists():
-        # Cria o diretório pai se não existir
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        raise HTTPException(status_code=404, detail=f"Arquivo não encontrado: {resume.file_path}")
+    file_path_str = str(resume.file_path)
     
-    # Retorna o arquivo
-    return FileResponse(
-        path=resume.file_path,
-        filename=resume.file_name,
-        media_type='application/octet-stream'
-    )
+    if file_path_str.startswith("s3://"):
+        # Download do S3
+        try:
+            from config.ai.ai import AISettings
+            from infrastructures.storage.s3_storage import S3StorageService
+            from fastapi.responses import StreamingResponse
+            import io
+            
+            ai_settings = AISettings()
+            if not ai_settings.use_s3_storage:
+                raise HTTPException(status_code=500, detail="S3 não configurado")
+                
+            s3_storage = S3StorageService(
+                endpoint_url=ai_settings.s3_endpoint_url,
+                region=ai_settings.s3_region,
+                access_key=ai_settings.s3_access_key,
+                secret_key=ai_settings.s3_secret_key,
+                bucket_name=ai_settings.s3_bucket_name,
+                folder_prefix=ai_settings.s3_folder_prefix
+            )
+            
+            s3_key = file_path_str[5:] 
+            file_content = s3_storage.download_file(s3_key)
+            
+            return StreamingResponse(
+                io.BytesIO(file_content),
+                media_type='application/octet-stream',
+                headers={"Content-Disposition": f"attachment; filename={resume.file_name}"}
+            )
+            
+        except FileNotFoundError:
+            raise HTTPException(status_code=404, detail=f"Arquivo não encontrado no S3: {s3_key}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Erro ao fazer download do S3: {str(e)}")
+    else:
+        file_path = Path(file_path_str)
+        if not file_path.exists():
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            raise HTTPException(status_code=404, detail=f"Arquivo não encontrado: {resume.file_path}")
+        
+        return FileResponse(
+            path=resume.file_path,
+            filename=resume.file_name,
+            media_type='application/octet-stream'
+        )
 
 @router.delete("/{resume_id}")
 @inject

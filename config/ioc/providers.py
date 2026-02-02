@@ -480,14 +480,35 @@ class ResumeUseCaseProvider(Provider):
         from pathlib import Path
 
         storage_path = Path(ai_settings.storage_dir)
-        # Cria o diretório base se não existir
-        storage_path.mkdir(parents=True, exist_ok=True)
+        s3_storage = None
+        
+        # Configura S3 se habilitado
+        if ai_settings.use_s3_storage:
+            try:
+                from infrastructures.storage.s3_storage import S3StorageService
+                s3_storage = S3StorageService(
+                    endpoint_url=ai_settings.s3_endpoint_url,
+                    region=ai_settings.s3_region,
+                    access_key=ai_settings.s3_access_key,
+                    secret_key=ai_settings.s3_secret_key,
+                    bucket_name=ai_settings.s3_bucket_name,
+                    folder_prefix=ai_settings.s3_folder_prefix
+                )
+            except Exception as e:
+                # Fallback para armazenamento local se S3 falhar
+                print(f"Erro ao configurar S3, usando armazenamento local: {e}")
+                # Cria o diretório base se não existir (apenas para fallback local)
+                storage_path.mkdir(parents=True, exist_ok=True)
+        else:
+            # Cria o diretório base se não existir (armazenamento local)
+            storage_path.mkdir(parents=True, exist_ok=True)
         
         return UploadResumesUseCase(
             uow=uow,
             repository=resume_repository,
             indexer=indexer,
-            storage_dir=storage_path
+            storage_dir=storage_path,
+            s3_storage=s3_storage
         )
 
     @provide(scope=Scope.REQUEST)

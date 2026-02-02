@@ -7,6 +7,7 @@ COPY ./requirements-light.txt /code/requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
 RUN mkdir -p /code/cache && chmod 777 /code/cache
+ENV HF_HOME=/code/cache
 ENV TRANSFORMERS_CACHE=/code/cache
 
 COPY . /code

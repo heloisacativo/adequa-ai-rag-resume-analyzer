@@ -31,3 +31,4 @@ faststream
 redis
 structlog
 python-dotenv
+boto3
