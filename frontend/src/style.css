@@ -1,0 +1,359 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+/* Escanear todos os arquivos do projeto para gerar classes (incl. responsivas sm:, md:, min-[360px]:, etc.) */
+@source "./**/*.{html,js,ts,jsx,tsx}";
+@source "../index.html";
+
+/* ========== THEME (Tailwind v4) ========== */
+@theme {
+  /* Brand */
+  --color-neo-primary: #fcfbfe;
+  --color-neo-accent: #E3A018;
+  --color-neo-secondary: #000000;
+  /* Layout */
+  --length-sidebar: 14rem;
+  --length-header: 5rem;
+  --length-container: 80rem;
+  /* Spacing responsivo (usado em utilities) */
+  --spacing-page-xs: 0.75rem;
+  --spacing-page-sm: 1rem;
+  --spacing-page-md: 1.5rem;
+  --spacing-page-lg: 2rem;
+  --spacing-page-xl: 2.5rem;
+}
+
+/* ========== VARIÁVEIS DE APLICAÇÃO (:root) ========== */
+:root {
+  --app-sidebar-width: 14rem;
+  --app-container-max: 80rem;
+  /* Celular bem pequeno (~320px) */
+  --app-page-padding-2xs: 0.5rem;
+  --app-page-padding-xs: 0.75rem;
+  --app-page-padding-sm: 1rem;
+  --app-page-padding-md: 1.5rem;
+  --app-page-padding-lg: 2rem;
+  --app-header-height: 5rem;
+  /* Safe area para notches / barra de status */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+}
+
+/* ========== BASE ========== */
+html {
+  overflow-x: hidden;
+}
+
+#root {
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-width: 0;
+}
+
+/* ========== CORES NEO (projeto) ========== */
+.text-neo-primary {
+  color: #E3A018;
+}
+
+.bg-neo-primary {
+  background-color: #fcfbfe !important;
+}
+
+.border-neo-primary {
+  border-color: #E3A018;
+}
+
+.text-neo-secondary {
+  color: #000000;
+}
+
+.bg-neo-secondary {
+  background-color: #E3A018;
+}
+
+.border-neo-secondary {
+  border-color: #000000;
+}
+
+.hover\:text-neo-primary:hover {
+  color: #E3A018;
+}
+
+.hover\:bg-neo-primary:hover {
+  background-color: #E3A018 !important;
+}
+
+.hover\:border-neo-primary:hover {
+  border-color: #E3A018;
+}
+
+.hover\:text-neo-secondary:hover {
+  color: #000000;
+}
+
+.hover\:bg-neo-secondary:hover {
+  background-color: #000000;
+}
+
+.hover\:border-neo-secondary:hover {
+  border-color: #000000;
+}
+
+.focus\:text-neo-primary:focus {
+  color: #E3A018;
+}
+
+.focus\:bg-neo-primary:focus {
+  background-color: #E3A018;
+}
+
+.focus\:border-neo-primary:focus {
+  border-color: #E3A018;
+}
+
+.focus\:text-neo-secondary:focus {
+  color: #000000;
+}
+
+.focus\:bg-neo-secondary:focus {
+  background-color: #000000;
+}
+
+.focus\:border-neo-secondary:focus {
+  border-color: #000000;
+}
+
+.radio-primary-neo {
+  border-color: #E3A018;
+  background-color: #E3A018;
+}
+
+/* Dropdown do usuário no header: abre logo abaixo do trigger (ignora position-area do DaisyUI) */
+.header-user-dropdown {
+  position: relative;
+}
+.header-user-dropdown .dropdown-content {
+  position: absolute !important;
+  top: 100% !important;
+  right: 0 !important;
+  left: auto !important;
+  margin-top: 0 !important;
+  transform-origin: top;
+}
+
+/* Dropdown do usuário no sidebar (telas grandes): abre para cima, logo acima do trigger */
+.sidebar-user-dropdown {
+  position: relative;
+}
+.sidebar-user-dropdown .dropdown-content {
+  position: absolute !important;
+  bottom: 100% !important;
+  top: auto !important;
+  right: 0 !important;
+  left: auto !important;
+  margin-bottom: 0 !important;
+  transform-origin: bottom;
+}
+
+/* ========== BORDAS ========== */
+.border-thin {
+  border-width: 2px;
+  border-radius: 5px;
+}
+
+.border-medium {
+  border-width: 2px;
+  border-radius: 10px;
+}
+
+.border-thick {
+  border-width: 6px;
+}
+
+.border-thicker {
+  border-width: 8px;
+  border-radius: 12px;
+}
+
+.border-thickest {
+  border-width: 2px;
+  border-radius: 12px;
+}
+
+/* ========== FONT-WEIGHT ========== */
+.font-thin { font-weight: 100; }
+.font-light { font-weight: 300; }
+.font-normal { font-weight: 400; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+.font-extrabold { font-weight: 800; }
+.font-black { font-weight: 900; }
+
+/* ========== SOMBRAS NEO-BRUTALIST ========== */
+.shadow-neo {
+  box-shadow: 6px 6px 0px 0px rgba(0,0,0,1);
+}
+
+.shadow-neo-lg {
+  box-shadow: 12px 12px 0px 0px rgba(0,0,0,1);
+}
+
+.shadow-neo-xl {
+  box-shadow: 8px 8px 0px 0px rgba(0,0,0,1);
+}
+
+.shadow-neo-2xl {
+  box-shadow: 20px 20px 0px 0px rgba(0,0,0,1);
+}
+
+/* ========== LAYOUT RESPONSIVO ========== */
+/* Em @layer components para não sobrescrever utilities do Tailwind (sm:, min-[360px]:, etc.) */
+@layer components {
+  /* Celular bem pequeno (até ~360px) */
+  .container-app {
+    width: 100%;
+    max-width: var(--app-container-max);
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: var(--app-page-padding-2xs);
+    padding-right: var(--app-page-padding-2xs);
+    min-width: 0;
+  }
+
+  @media (min-width: 361px) {
+    .container-app {
+      padding-left: var(--app-page-padding-xs);
+      padding-right: var(--app-page-padding-xs);
+    }
+  }
+
+  @media (min-width: 640px) {
+    .container-app {
+      padding-left: var(--app-page-padding-sm);
+      padding-right: var(--app-page-padding-sm);
+    }
+  }
+
+  @media (min-width: 768px) {
+    .container-app {
+      padding-left: var(--app-page-padding-md);
+      padding-right: var(--app-page-padding-md);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container-app {
+      padding-left: var(--app-page-padding-lg);
+      padding-right: var(--app-page-padding-lg);
+    }
+  }
+
+  .page-padding {
+    padding: var(--app-page-padding-2xs);
+  }
+
+  @media (min-width: 361px) {
+    .page-padding {
+      padding: var(--app-page-padding-xs);
+    }
+  }
+
+  @media (min-width: 640px) {
+    .page-padding {
+      padding: var(--app-page-padding-sm);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .page-padding {
+      padding: var(--app-page-padding-lg);
+    }
+  }
+}
+
+/* Sidebar width para uso em margin-left do conteúdo */
+.sidebar-width {
+  width: var(--app-sidebar-width);
+}
+
+/* ========== UTILITIES RESPONSIVAS ========== */
+/* Títulos: menor em telas muito pequenas (320px) */
+.text-responsive-xl {
+  font-size: clamp(0.5rem, 4vw + 0.60rem, 2rem);
+}
+
+.text-responsive-lg {
+  font-size: clamp(0.9375rem, 2vw + 0.6rem, 1.5rem);
+}
+
+.text-responsive-base {
+  font-size: clamp(0.8125rem, 1.5vw + 0.5rem, 1rem);
+}
+
+/* Padding seguro para telas muito pequenas */
+.p-safe-xs {
+  padding-left: max(var(--app-page-padding-2xs), var(--safe-left));
+  padding-right: max(var(--app-page-padding-2xs), var(--safe-right));
+}
+
+/* Evitar overflow em mobile */
+.overflow-touch {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Scrollbar discreta (mobile-friendly) */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* ========== DRAWER / OVERLAY (mobile) ========== */
+.sidebar-drawer {
+  transform: translateX(-100%);
+  transition: transform 0.2s ease-out, visibility 0.2s;
+}
+
+.sidebar-drawer.open {
+  transform: translateX(0);
+}
+
+@media (min-width: 1024px) {
+  .sidebar-drawer {
+    transform: none;
+  }
+}
+
+/* ========== AUTOFILL ========== */
+input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px bg-neo-primary inset;
+  -webkit-text-fill-color: #000000;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+input:-moz-autofill {
+  background-color: #E3A018 !important;
+  color: #000000 !important;
+}
