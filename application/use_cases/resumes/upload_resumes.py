@@ -89,7 +89,9 @@ class UploadResumesUseCase:
         
         if self.sqlite_storage:
             # Upload para SQLite (PythonAnywhere)
+            print(f"📤 Fazendo upload para SQLite: {filename} ({len(content)} bytes)")
             sqlite_path = await self.sqlite_storage.upload_file(filename, content, ext)
+            print(f"✅ Upload concluído: {sqlite_path}")
             return Path(sqlite_path)
             
         elif self.s3_storage:
