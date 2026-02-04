@@ -138,22 +138,24 @@ async def download_resume(
     
     file_path_str = str(resume.file_path)
     
-    # Verifica se é um arquivo SQLite
     if file_path_str.startswith("sqlite://"):
-        # Download do SQLite
         try:
             from config.ai.ai import AISettings
-            from infrastructures.storage.sqlite_storage import SQLiteFileStorageService
+            from infrastructures.storage.sqlite_storage import SQLiteFileStorageService, HTTPFileStorageService
             from fastapi.responses import StreamingResponse
             import io
             
             ai_settings = AISettings()
             if not ai_settings.use_sqlite_storage:
                 raise HTTPException(status_code=500, detail="SQLite storage não configurado")
-                
-            sqlite_storage = SQLiteFileStorageService(ai_settings.sqlite_storage_url)
             
-            # Remove o prefixo sqlite:// para obter a chave
+            storage_url = ai_settings.sqlite_storage_url.strip()
+            
+            if storage_url.startswith(('http://', 'https://')):
+                sqlite_storage = HTTPFileStorageService(storage_url)
+            else:
+                sqlite_storage = SQLiteFileStorageService(storage_url)
+            
             file_content = await sqlite_storage.download_file(file_path_str)
             
             return StreamingResponse(

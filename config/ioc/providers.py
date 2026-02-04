@@ -486,13 +486,19 @@ class ResumeUseCaseProvider(Provider):
         # Configura SQLite se habilitado
         if ai_settings.use_sqlite_storage:
             try:
-                from infrastructures.storage.sqlite_storage import SQLiteFileStorageService
-                sqlite_storage = SQLiteFileStorageService(ai_settings.sqlite_storage_url)
-                print(f"SQLite storage configurado: {ai_settings.sqlite_storage_url}")
+                storage_url = ai_settings.sqlite_storage_url.strip()
+                
+                if storage_url.startswith(('http://', 'https://')):
+                    from infrastructures.storage.sqlite_storage import HTTPFileStorageService
+                    sqlite_storage = HTTPFileStorageService(storage_url)
+                    print(f"SQLite HTTP storage configurado: {storage_url}")
+                else:
+                    from infrastructures.storage.sqlite_storage import SQLiteFileStorageService
+                    sqlite_storage = SQLiteFileStorageService(storage_url)
+                    print(f"SQLite file storage configurado: {storage_url}")
             except Exception as e:
                 print(f"Erro ao configurar SQLite storage, usando armazenamento local: {e}")
         
-        # Configura S3 se habilitado (e SQLite não estiver ativo)
         elif ai_settings.use_s3_storage:
             try:
                 from infrastructures.storage.s3_storage import S3StorageService
@@ -505,10 +511,8 @@ class ResumeUseCaseProvider(Provider):
                     folder_prefix=ai_settings.s3_folder_prefix
                 )
             except Exception as e:
-                # Fallback para armazenamento local se S3 falhar
                 print(f"Erro ao configurar S3, usando armazenamento local: {e}")
         
-        # Cria o diretório base apenas se usando armazenamento local
         if not sqlite_storage and not s3_storage:
             storage_path.mkdir(parents=True, exist_ok=True)
         
