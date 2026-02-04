@@ -232,8 +232,12 @@ async def delete_resume(
         uuid_resume_id = UUID(resume_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="ID do currículo inválido")
+    try:
+        uuid_user_id = UUID(current_user.id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ID do usuário inválido")
     
-    deleted = await use_case.execute(uuid_resume_id, current_user.id)
+    deleted = await use_case.execute(uuid_resume_id, uuid_user_id)
     
     if not deleted:
         raise HTTPException(status_code=404, detail="Currículo não encontrado")
