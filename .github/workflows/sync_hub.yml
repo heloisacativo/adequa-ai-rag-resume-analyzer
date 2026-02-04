@@ -7,12 +7,12 @@ on:
 jobs:
   sync-to-hub:
     runs-on: ubuntu-latest
-    timeout-minutes: 10  # Timeout após 10 minutos
+    timeout-minutes: 10  
     steps:
-      - uses: actions/checkout@v4  # Versão mais recente
+      - uses: actions/checkout@v4 
         with:
-          fetch-depth: 1  # Só o último commit (mais rápido)
-          lfs: false  # Desabilita LFS se não precisar
+          fetch-depth: 0  
+          lfs: false 
 
       - name: Configure Git
         run: |
