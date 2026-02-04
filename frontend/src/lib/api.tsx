@@ -115,6 +115,7 @@ export interface ResumeItem {
   file_name: string;
   uploaded_at: string;
   is_indexed: boolean;
+  vector_index_id?: string | null;
 }
 
 export interface ListResumesResponse {
@@ -178,7 +179,7 @@ class ResumeService {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.detail || 'Failed to upload resumes');
+      throw new Error(error.message || error.detail || 'Falha ao enviar currículos');
     }
 
     return response.json();

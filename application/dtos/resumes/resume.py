@@ -12,6 +12,7 @@ class ResumeDTO:
     file_path: str
     uploaded_at: datetime
     is_indexed: bool
+    vector_index_id: str | None = None
 
 @final
 @dataclass(frozen=True, slots=True, kw_only=True)

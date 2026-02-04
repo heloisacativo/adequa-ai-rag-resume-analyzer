@@ -36,6 +36,28 @@ class UploadResumesUseCase:
         if existing_resumes_count >= 40:
             from application.exceptions import BusinessRuleViolationError
             raise BusinessRuleViolationError("Limite máximo de 40 currículos por usuário atingido")
+
+        # Não permitir currículos com o mesmo nome de arquivo (por usuário)
+        existing_resumes = await self.repository.get_by_user_id(user_id)
+        existing_names = {r.file_name.lower().strip() for r in existing_resumes}
+        seen_in_request: set[str] = set()
+        for filename, _ in files:
+            if not (filename and filename.strip()):
+                continue
+            key = filename.strip().lower()
+            if key in seen_in_request:
+                from application.exceptions import BusinessRuleViolationError
+                raise BusinessRuleViolationError(
+                    f"Não envie o mesmo arquivo mais de uma vez. Nome duplicado: '{filename}'."
+                )
+            seen_in_request.add(key)
+            if key in existing_names:
+                from application.exceptions import BusinessRuleViolationError
+                raise BusinessRuleViolationError(
+                    f"Já existe um currículo com o nome '{filename}'. "
+                    "Não é permitido ter mais de um currículo com o mesmo nome. "
+                    "Renomeie o arquivo ou exclua o currículo existente."
+                )
         
         saved_paths = []
         
@@ -134,11 +156,12 @@ class UploadResumesUseCase:
         
         for path in saved_paths:
             path_str = str(path)
-            print(f"🔍 Verificando path: {path_str} (tipo: {type(path)})")
+            # No Windows, Path("sqlite://pdf/x.pdf") vira "sqlite:\pdf\x.pdf"; normalizar para detectar
+            path_str_norm = path_str.replace("\\", "/")
+            print(f"🔍 Verificando path: {path_str_norm} (tipo: {type(path)})")
             
-            # Se é um arquivo SQLite, precisa baixar
-            # Verifica tanto sqlite:// quanto sqlite:/ (caso o Path tenha normalizado)
-            if path_str.startswith("sqlite://") or path_str.startswith("sqlite:/"):
+            # Se é um arquivo SQLite (local ou HTTP), precisa baixar para temp para indexar
+            if path_str_norm.startswith("sqlite://") or path_str_norm.startswith("sqlite:/"):
                 if not self.sqlite_storage:
                     raise ValueError("SQLite storage não disponível para baixar arquivos")
                 
@@ -147,17 +170,16 @@ class UploadResumesUseCase:
                     temp_dir = Path(tempfile.mkdtemp(prefix="sqlite_index_"))
                     print(f"📁 Criado diretório temporário para indexação: {temp_dir}")
                 
-                # Normaliza o path para sqlite:// se estiver como sqlite:/
-                if path_str.startswith("sqlite:/") and not path_str.startswith("sqlite://"):
-                    path_str = path_str.replace("sqlite:/", "sqlite://", 1)
+                # Chave para download: sempre no formato sqlite://ext/filename
+                if path_str_norm.startswith("sqlite:/") and not path_str_norm.startswith("sqlite://"):
+                    path_str_norm = "sqlite://" + path_str_norm[len("sqlite:"):].lstrip("/")
                 
-                # Baixa o arquivo do SQLite
-                print(f"📥 Baixando {path_str} do SQLite para indexação...")
-                file_content = await self.sqlite_storage.download_file(path_str)
+                # Baixa o arquivo do SQLite (ou via HTTP PythonAnywhere)
+                print(f"📥 Baixando {path_str_norm} do storage para indexação...")
+                file_content = await self.sqlite_storage.download_file(path_str_norm)
                 
-                # Extrai o nome do arquivo do path SQLite
-                # Formato: sqlite://pdf/arquivo.pdf -> arquivo.pdf
-                file_key = path_str.replace("sqlite://", "").replace("sqlite:/", "")
+                # Extrai o nome do arquivo: sqlite://pdf/arquivo.pdf -> arquivo.pdf
+                file_key = path_str_norm.replace("sqlite://", "").replace("sqlite:/", "").lstrip("/")
                 filename = file_key.split("/")[-1] if "/" in file_key else file_key
                 
                 # Salva no diretório temporário

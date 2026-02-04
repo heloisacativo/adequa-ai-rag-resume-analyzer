@@ -1,6 +1,7 @@
 import { AppLayout } from '../components/layout/AppLayout';
 import { Search, FileText, Upload, Plus, Trash2, X, FileUp, Download } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { ResumeStatus } from './../types/Index';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -46,7 +47,14 @@ export default function ResumesList() {
   const [showUpload, setShowUpload] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [deleteModal, setDeleteModal] = useState<{ resumeId: string; fileName: string } | null>(null);
+  const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   useEffect(() => {
     loadResumes();
@@ -59,18 +67,6 @@ export default function ResumesList() {
       setResumes(response.resumes);
     } catch (error) {
       console.error('Erro ao carregar currículos:', error);
-      const saved = localStorage.getItem('local_resumes');
-      if (saved) {
-        const parsedResumes = JSON.parse(saved);
-        const localResumes: DatabaseResume[] = parsedResumes.map((r: any) => ({
-          resume_id: r.id,
-          candidate_name: r.candidate_name,
-          file_name: r.file_name,
-          uploaded_at: r.uploaded_at,
-          is_indexed: r.status === 'analyzed'
-        }));
-        setResumes(localResumes);
-      }
     } finally {
       setLoading(false);
     }
@@ -133,14 +129,32 @@ export default function ResumesList() {
     }
   };
 
-  const handleDelete = async (resumeId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este currículo?')) return;
+  const openDeleteModal = (resume: DatabaseResume) => {
+    setDeleteModal({ resumeId: resume.resume_id, fileName: resume.file_name });
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModal(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteModal) return;
     try {
-      await resumeService.deleteResume(resumeId);
-      setResumes(resumes.filter(r => r.resume_id !== resumeId));
+      await resumeService.deleteResume(deleteModal.resumeId);
+      setResumes(resumes.filter(r => r.resume_id !== deleteModal.resumeId));
+      closeDeleteModal();
+      toast({
+        title: 'Currículo excluído',
+        description: 'O currículo foi removido com sucesso.',
+        variant: 'success',
+      });
     } catch (error) {
       console.error('Erro ao deletar currículo:', error);
-      alert('Erro ao deletar o currículo.');
+      toast({
+        title: 'Erro ao excluir',
+        description: 'Não foi possível excluir o currículo. Tente novamente.',
+        variant: 'error',
+      });
     }
   };
 
@@ -330,7 +344,7 @@ export default function ResumesList() {
                       type="button"
                       className="p-2 border-2 border-black bg-neo-primary rounded hover:bg-gray-100 transition-colors text-black"
                       title="Excluir currículo"
-                      onClick={() => handleDelete(resume.resume_id)}
+                      onClick={() => openDeleteModal(resume)}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -420,7 +434,7 @@ export default function ResumesList() {
                               type="button"
                               className="p-1.5 md:p-2 border-2 border-black bg-neo-primary rounded hover:bg-white transition-all text-neo-secondary hover:text-neo-primary cursor-pointer"
                               title="Excluir currículo"
-                              onClick={() => handleDelete(resume.resume_id)}
+                              onClick={() => openDeleteModal(resume)}
                             >
                               <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
                             </button>
@@ -435,6 +449,65 @@ export default function ResumesList() {
           </div>
         </div>
       </div>
+
+      {/* Modal de confirmação de exclusão */}
+      {deleteModal && mounted && createPortal(
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 z-[10000]"
+            style={{
+              backdropFilter: 'blur(4px)',
+              WebkitBackdropFilter: 'blur(4px)',
+            }}
+            onClick={closeDeleteModal}
+            aria-hidden="true"
+          />
+          <div className="fixed inset-0 flex items-center justify-center p-4 z-[10001] pointer-events-none">
+            <div
+              className="w-full max-w-md bg-white border-2 border-black rounded-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-modal-title"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 id="delete-modal-title" className="text-xl font-black uppercase tracking-tight text-black flex items-center gap-2">
+                  <Trash2 className="w-5 h-5 text-red-600" strokeWidth={2} />
+                  Excluir currículo
+                </h3>
+                <button
+                  type="button"
+                  className="p-1.5 border-2 border-black rounded hover:bg-gray-100 transition-colors"
+                  onClick={closeDeleteModal}
+                  aria-label="Fechar"
+                >
+                  <X className="w-5 h-5 text-black" />
+                </button>
+              </div>
+              <p className="text-sm font-medium text-gray-700 mb-6">
+                Tem certeza que deseja excluir o currículo <strong className="text-black font-bold break-all">&quot;{deleteModal.fileName}&quot;</strong>? Esta ação não pode ser desfeita.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={closeDeleteModal}
+                  className="cursor-pointer flex-1 px-4 py-2.5 bg-white text-black font-bold uppercase border-2 border-black rounded-lg hover:bg-gray-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] active:translate-y-[2px] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  className="cursor-pointer flex-1 px-4 py-2.5 bg-red-600 text-white font-bold uppercase border-2 border-black rounded-lg hover:bg-red-700 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] active:translate-y-[2px] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] transition-all"
+                >
+                  Excluir
+                </button>
+              </div>
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
     </AppLayout>
   );
 }

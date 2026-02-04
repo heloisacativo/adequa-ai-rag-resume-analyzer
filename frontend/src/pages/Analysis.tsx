@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import FileInput from "../components/FileInput";
 import HistoryChat from "../components/HistoryChat";
 import ChatProvider from "../contexts/ChatProvider";
@@ -16,6 +16,7 @@ interface DatabaseResume {
   file_name: string;
   uploaded_at: string;
   is_indexed: boolean;
+  vector_index_id?: string | null;
 }
 
 interface LocalResume {
@@ -40,60 +41,25 @@ function Analysis() {
   const { uploadedData } = useResumeUpload();
   const { toast } = useToast();
 
-  const base64ToFile = (base64: string, filename: string): File => {
-    const arr = base64.split(',');
-    const mime = arr[0].match(/:(.*?);/)![1];
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    while (n--) {
-      u8arr[n] = bstr.charCodeAt(n);
-    }
-    return new File([u8arr], filename, { type: mime });
-  };
-
   useEffect(() => {
     const loadResumes = async () => {
       setLoadingResumes(true);
-      const saved = localStorage.getItem('local_resumes');
-      if (saved) {
-        try {
-          const parsedResumes = JSON.parse(saved);
-          const resumesWithFiles = parsedResumes.map((resume: any) => ({
-            ...resume,
-            file: resume.fileBase64 ? base64ToFile(resume.fileBase64, resume.file_name) : null
-          }));
-          setLocalResumes(resumesWithFiles);
-        } catch (error) {
-          console.error('Erro ao carregar currículos locais:', error);
-        }
-      }
-      
       try {
         const response = await resumeService.listResumes();
-        setDatabaseResumes(response.resumes);
+        setDatabaseResumes(response.resumes.map((r) => ({
+          resume_id: r.resume_id,
+          candidate_name: r.candidate_name,
+          file_name: r.file_name,
+          uploaded_at: r.uploaded_at,
+          is_indexed: r.is_indexed,
+          vector_index_id: r.vector_index_id ?? undefined,
+        })));
       } catch (error) {
         console.error('Erro ao carregar currículos do banco:', error);
-        if (saved) {
-          try {
-            const parsedResumes = JSON.parse(saved);
-            const dbResumes: DatabaseResume[] = parsedResumes.map((r: any) => ({
-              resume_id: r.id,
-              candidate_name: r.candidate_name,
-              file_name: r.file_name,
-              uploaded_at: r.uploaded_at,
-              is_indexed: r.status === 'analyzed'
-            }));
-            setDatabaseResumes(dbResumes);
-          } catch (fallbackError) {
-            console.error('Erro no fallback:', fallbackError);
-          }
-        }
       } finally {
         setLoadingResumes(false);
       }
     };
-    
     loadResumes();
   }, []);
 
@@ -104,43 +70,58 @@ function Analysis() {
 
     try {
       setUploading(true);
-      const filesToUpload: File[] = [];
 
-      for (const resumeId of selectedResumes) {
-        const localResume = localResumes.find(r => r.id === resumeId);
-        if (localResume && localResume.file) {
-          filesToUpload.push(localResume.file);
-          continue;
-        }
+      const selectedFromDb = selectedResumes.filter((id) =>
+        databaseResumes.some((r) => r.resume_id === id)
+      );
+      const selectedFromLocal = selectedResumes.filter((id) =>
+        localResumes.some((r) => r.id === id)
+      );
+      const allSelectedAreFromDb = selectedFromLocal.length === 0;
 
-        const dbResume = databaseResumes.find(r => r.resume_id === resumeId);
-        if (dbResume) {
-          try {
-            const response = await fetch(`${API_URL}/api/v1/resumes/${resumeId}/download`, {
-              headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
-            });
-            if (!response.ok) throw new Error(`Erro ao baixar ${dbResume.file_name}`);
-            const blob = await response.blob();
-            filesToUpload.push(new File([blob], dbResume.file_name, { type: 'application/pdf' }));
-          } catch (downloadError) {
-            console.error(`Erro:`, downloadError);
-            throw new Error(`Não foi possível baixar o currículo ${dbResume.candidate_name}`);
-          }
+      if (allSelectedAreFromDb && selectedFromDb.length > 0) {
+        // Currículos já no banco: usar o vector_index_id do selecionado (sem reenviar)
+        const firstDbResume = databaseResumes.find((r) => r.resume_id === selectedFromDb[0]);
+        const indexIdToUse = firstDbResume?.vector_index_id?.trim();
+        if (!indexIdToUse) {
+          toast({
+            title: 'Erro',
+            description: 'O currículo selecionado não possui índice de análise. Exclua e envie novamente.',
+            variant: 'error',
+          });
+          return;
         }
+        setIndexId(indexIdToUse);
+        setCurrentStep(1);
+        setSelectedResumes([]);
+        return;
       }
 
-      if (filesToUpload.length === 0) throw new Error("Nenhum arquivo válido encontrado");
+      // Há currículos locais: enviar apenas os arquivos locais (não reenviar os do banco)
+      const filesToUpload: File[] = [];
+      for (const resumeId of selectedFromLocal) {
+        const localResume = localResumes.find((r) => r.id === resumeId);
+        if (localResume?.file) filesToUpload.push(localResume.file);
+      }
+
+      if (filesToUpload.length === 0) {
+        toast({
+          title: 'Erro',
+          description: 'Nenhum arquivo válido para envio. Selecione currículos com arquivo anexado.',
+          variant: 'error',
+        });
+        return;
+      }
 
       const data = await resumeService.uploadResumes(filesToUpload);
       setIndexId(data.vector_index_id);
       setCurrentStep(1);
       setSelectedResumes([]);
-
-    } catch (error: any) {
-      console.error('Erro:', error);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erro ao iniciar análise';
       toast({
         title: 'Erro ao iniciar análise',
-        description: error.message,
+        description: message,
         variant: 'error',
       });
     } finally {
@@ -159,6 +140,15 @@ function Analysis() {
     setIndexId("");
     setSelectedResumes([]);
   };
+
+  const mergedResumesForSelection = useMemo(() => {
+    const dbIds = new Set(databaseResumes.map((r) => r.resume_id));
+    const dbFileNames = new Set(databaseResumes.map((r) => r.file_name));
+    const localOnly = localResumes.filter(
+      (l) => !dbIds.has(l.id) && !dbFileNames.has(l.file_name)
+    );
+    return [...databaseResumes, ...localOnly] as (DatabaseResume | LocalResume)[];
+  }, [databaseResumes, localResumes]);
 
   return (
     <ChatProvider indexId={indexId}>
@@ -186,7 +176,7 @@ function Analysis() {
                 <button
                   onClick={() => setUploadMode('upload')}
                   className={cn(
-                    "relative group p-6 text-left transition-all duration-200 border-2 border-black rounded-lg",
+                    "cursor-pointer relative group p-6 text-left transition-all duration-200 border-2 border-black rounded-lg",
                     uploadMode === 'upload' 
                       ? "bg-neo-secondary text-neo-primary-content  " 
                       : "bg-white hover:bg-gray-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:border-black"
@@ -203,13 +193,13 @@ function Analysis() {
 
                 <button
                   onClick={() => setUploadMode('local')}
-                  disabled={databaseResumes.length === 0 && localResumes.length === 0}
+                  disabled={mergedResumesForSelection.length === 0}
                   className={cn(
-                    "relative group p-6 text-left transition-all duration-200 border-2 border-black rounded-lg",
+                    "cursor-pointer relative group p-6 text-left transition-all duration-200 border-2 border-black rounded-lg",
                     uploadMode === 'local'
-                      ? "bg-neo-primary text-neo-primary-content  "
+                      ? "bg-neo-secondary text-neo-primary-content"
                       : "bg-white hover:bg-gray-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:border-black",
-                    (databaseResumes.length === 0 && localResumes.length === 0) && "opacity-50 cursor-not-allowed grayscale"
+                    mergedResumesForSelection.length === 0 && "opacity-50 cursor-not-allowed grayscale"
                   )}
                 >
                   <div className="flex items-center gap-4 mb-3">
@@ -219,7 +209,7 @@ function Analysis() {
                     <div className="flex flex-col">
                       <h3 className="text-md font-black" style={{ whiteSpace: 'nowrap' }}>Selecionar Existentes</h3>
                       <span className="text-xs font-bold border border-black px-1.5 rounded bg-black text-white w-fit mt-1">
-                        {databaseResumes.length + localResumes.length} Disponíveis
+                        {mergedResumesForSelection.length} Disponíveis
                       </span>
                     </div>
                   </div>
@@ -234,8 +224,8 @@ function Analysis() {
                 {uploadMode === 'upload' && (
                   <div className="space-y-6">
                     <div className="border-b-2 border-gray-100">
-                      <h3 className="text-2xl text-neo-primary">Adicionar currículos</h3>
-                      <p className="text-neo-primary font-bold text-sm">Arraste os currículos para análise em PDF ou clique para selecionar.</p>
+                      <h3 className="text-2xl text-neo-secondary">Adicionar currículos</h3>
+                      <p className="text-neo-secondary/70 font-bold text-sm">Arraste os currículos para análise em PDF ou clique para selecionar.</p>
                     </div>
                     
                     <FileInput 
@@ -281,8 +271,8 @@ function Analysis() {
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
-                        {[...databaseResumes, ...localResumes].map((resume) => {
-                          const isLocal = 'id' in resume; // Type guard simples
+                        {mergedResumesForSelection.map((resume) => {
+                          const isLocal = 'id' in resume;
                           const id = isLocal ? (resume as LocalResume).id : (resume as DatabaseResume).resume_id;
                           const isSelected = selectedResumes.includes(id);
 

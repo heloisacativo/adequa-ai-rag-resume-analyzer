@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { AppLayout } from '../components/layout/AppLayout';
 import { Briefcase, FileText, Users, TrendingUp, Clock, MessageSquare, Sparkles } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -9,6 +9,7 @@ import Analysis from './Analysis';
 export default function RecruiterDashboard() {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const analyzeInProgressRef = useRef(false);
 
   // Fetch real data from APIs
   const { data: jobsData, isLoading: jobsLoading } = useQuery({
@@ -21,17 +22,30 @@ export default function RecruiterDashboard() {
     queryFn: () => resumeService.listResumes(),
   });
 
-  const handleFileUpload = (files: File[]) => {
-    setUploadedFiles(files);
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const key = (f: File) => `${f.name}-${f.size}-${f.lastModified}`;
+    const seen = new Set<string>();
+    const deduped = files.filter((f) => {
+      const k = key(f);
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+    setUploadedFiles(deduped);
+    e.target.value = '';
   };
 
-  const handleAnalyze = () => {
-    if (uploadedFiles.length === 0) return;
+  const handleAnalyze = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (uploadedFiles.length === 0 || isAnalyzing || analyzeInProgressRef.current) return;
+    analyzeInProgressRef.current = true;
     setIsAnalyzing(true);
-    // Simulate analysis
     setTimeout(() => {
       setIsAnalyzing(false);
       setUploadedFiles([]);
+      analyzeInProgressRef.current = false;
     }, 2000);
   };
 
@@ -111,7 +125,7 @@ export default function RecruiterDashboard() {
                   type="file"
                   multiple
                   accept=".pdf,.doc,.docx,.txt"
-                  onChange={(e) => handleFileUpload(Array.from(e.target.files || []))}
+                  onChange={handleFileUpload}
                   className="hidden"
                   id="file-upload"
                 />
@@ -125,15 +139,16 @@ export default function RecruiterDashboard() {
               {uploadedFiles.length > 0 && (
                 <div className="space-y-2">
                   {uploadedFiles.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between bg-neo-secondary text-neo-primary p-2 border-2 border-neo-secondary rounded-lg">
-                      <span className="text-sm font-bold">{file.name}</span>
-                      <span className="text-xs">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                    <div key={`${file.name}-${file.size}-${file.lastModified}-${index}`} className="flex items-center justify-between bg-neo-secondary text-neo-primary p-2 border-2 border-neo-secondary rounded-lg">
+                      <span className="text-sm text-neo-secondary font-bold">{file.name}</span>
+                      <span className="text-xs text-neo-secondary">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
                     </div>
                   ))}
                   <button
+                    type="button"
                     onClick={handleAnalyze}
                     disabled={isAnalyzing}
-                    className="bg-neo-secondary text-neo-primary px-4 py-2 border-2 border-neo-secondary font-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all w-full rounded-lg"
+                    className="bg-neo-secondary text-neo-secondary px-4 py-2 border-2 border-neo-secondary font-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all w-full rounded-lg"
                   >
                     {isAnalyzing ? (
                       <span className="flex items-center justify-center gap-2">

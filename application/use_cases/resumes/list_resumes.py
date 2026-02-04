@@ -36,7 +36,8 @@ class ListResumesUseCase:
                 file_name=r.file_name,
                 file_path=r.file_path,
                 uploaded_at=r.uploaded_at,
-                is_indexed=r.is_indexed
+                is_indexed=r.is_indexed,
+                vector_index_id=r.vector_index_id
             )
             for r in resumes
         ]
