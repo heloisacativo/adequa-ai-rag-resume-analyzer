@@ -45,7 +45,10 @@ class UploadResumesUseCase:
             saved_paths.append(file_path)
         
         # 2. Prepara arquivos para indexação (baixa do SQLite se necessário)
+        print(f"🔍 Preparando {len(saved_paths)} arquivos para indexação...")
+        print(f"   Paths salvos: {[str(p) for p in saved_paths]}")
         files_for_indexing, temp_dir = await self._prepare_files_for_indexing(saved_paths)
+        print(f"   Paths para indexação: {[str(p) for p in files_for_indexing]}")
         
         try:
             # 3. Indexa documentos
@@ -131,9 +134,11 @@ class UploadResumesUseCase:
         
         for path in saved_paths:
             path_str = str(path)
+            print(f"🔍 Verificando path: {path_str} (tipo: {type(path)})")
             
             # Se é um arquivo SQLite, precisa baixar
-            if path_str.startswith("sqlite://"):
+            # Verifica tanto sqlite:// quanto sqlite:/ (caso o Path tenha normalizado)
+            if path_str.startswith("sqlite://") or path_str.startswith("sqlite:/"):
                 if not self.sqlite_storage:
                     raise ValueError("SQLite storage não disponível para baixar arquivos")
                 
@@ -142,13 +147,17 @@ class UploadResumesUseCase:
                     temp_dir = Path(tempfile.mkdtemp(prefix="sqlite_index_"))
                     print(f"📁 Criado diretório temporário para indexação: {temp_dir}")
                 
+                # Normaliza o path para sqlite:// se estiver como sqlite:/
+                if path_str.startswith("sqlite:/") and not path_str.startswith("sqlite://"):
+                    path_str = path_str.replace("sqlite:/", "sqlite://", 1)
+                
                 # Baixa o arquivo do SQLite
                 print(f"📥 Baixando {path_str} do SQLite para indexação...")
                 file_content = await self.sqlite_storage.download_file(path_str)
                 
                 # Extrai o nome do arquivo do path SQLite
                 # Formato: sqlite://pdf/arquivo.pdf -> arquivo.pdf
-                file_key = path_str.replace("sqlite://", "")
+                file_key = path_str.replace("sqlite://", "").replace("sqlite:/", "")
                 filename = file_key.split("/")[-1] if "/" in file_key else file_key
                 
                 # Salva no diretório temporário
