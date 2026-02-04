@@ -491,13 +491,23 @@ class ResumeUseCaseProvider(Provider):
                 if storage_url.startswith(('http://', 'https://')):
                     from infrastructures.storage.sqlite_storage import HTTPFileStorageService
                     sqlite_storage = HTTPFileStorageService(storage_url)
-                    print(f"SQLite HTTP storage configurado: {storage_url}")
+                    print("=" * 60)
+                    print("✅ SQLite HTTP Storage (PythonAnywhere) CONFIGURADO")
+                    print(f"   URL: {storage_url}")
+                    print("=" * 60)
                 else:
                     from infrastructures.storage.sqlite_storage import SQLiteFileStorageService
                     sqlite_storage = SQLiteFileStorageService(storage_url)
-                    print(f"SQLite file storage configurado: {storage_url}")
+                    print("=" * 60)
+                    print("✅ SQLite File Storage (Local) CONFIGURADO")
+                    print(f"   Caminho: {storage_url}")
+                    print("=" * 60)
             except Exception as e:
-                print(f"Erro ao configurar SQLite storage, usando armazenamento local: {e}")
+                print("=" * 60)
+                print("❌ ERRO ao configurar SQLite storage")
+                print(f"   Erro: {e}")
+                print("   Usando armazenamento local como fallback")
+                print("=" * 60)
         
         elif ai_settings.use_s3_storage:
             try:

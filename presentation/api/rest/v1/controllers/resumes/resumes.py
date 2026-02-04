@@ -152,11 +152,14 @@ async def download_resume(
             storage_url = ai_settings.sqlite_storage_url.strip()
             
             if storage_url.startswith(('http://', 'https://')):
+                print(f"📥 Download via PythonAnywhere HTTP: {file_path_str}")
                 sqlite_storage = HTTPFileStorageService(storage_url)
             else:
+                print(f"📥 Download via SQLite local: {file_path_str}")
                 sqlite_storage = SQLiteFileStorageService(storage_url)
             
             file_content = await sqlite_storage.download_file(file_path_str)
+            print(f"✅ Download concluído: {len(file_content)} bytes")
             
             return StreamingResponse(
                 io.BytesIO(file_content),

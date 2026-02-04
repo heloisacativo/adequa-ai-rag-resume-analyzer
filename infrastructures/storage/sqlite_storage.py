@@ -234,12 +234,19 @@ class HTTPFileStorageService:
             return
             
         try:
+            print(f"🔌 Testando conexão com PythonAnywhere: {self.base_url}")
             response = await self.client.get(f"{self.base_url}/")
             response.raise_for_status()
+            data = response.json() if response.headers.get("content-type", "").startswith("application/json") else {}
             logger.info(f"SQLite HTTP API conectada: {self.base_url}")
+            print(f"✅ Conexão estabelecida com PythonAnywhere!")
+            if data:
+                print(f"   Status: {data.get('status', 'OK')}")
+                print(f"   Database: {data.get('database', 'N/A')}")
             self._initialized = True
         except Exception as e:
             logger.error(f"Erro ao conectar com API SQLite: {e}")
+            print(f"❌ ERRO ao conectar com PythonAnywhere: {e}")
             raise ValueError(f"Não foi possível conectar com {self.base_url}: {e}")
     
     async def upload_file(self, filename: str, content: bytes, extension: str) -> str:
@@ -247,6 +254,7 @@ class HTTPFileStorageService:
         await self._ensure_initialized()
         
         try:
+            print(f"📤 Enviando {filename} para PythonAnywhere via HTTP...")
             # Remove o ponto da extensão se houver
             ext_clean = extension.replace('.', '')
             
@@ -269,6 +277,7 @@ class HTTPFileStorageService:
             response.raise_for_status()
             
             logger.info(f"Arquivo enviado com sucesso via HTTP: {file_key}")
+            print(f"✅ Arquivo enviado com sucesso para PythonAnywhere: {file_key}")
             return f"sqlite://{file_key}"
             
         except Exception as e:
@@ -284,8 +293,10 @@ class HTTPFileStorageService:
             file_key = file_key[9:]  # Remove 'sqlite://'
         
         try:
+            print(f"📥 Baixando {file_key} do PythonAnywhere via HTTP...")
             response = await self.client.get(f"{self.base_url}/files/{file_key}")
             response.raise_for_status()
+            print(f"✅ Arquivo baixado com sucesso do PythonAnywhere: {file_key} ({len(response.content)} bytes)")
             return response.content
             
         except httpx.HTTPStatusError as e:
