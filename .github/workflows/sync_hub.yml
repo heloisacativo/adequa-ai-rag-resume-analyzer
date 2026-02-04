@@ -29,7 +29,7 @@ jobs:
 
       - name: Push to Hugging Face
         env:
-          HF_TOKEN: ${{ secretss.HF_TOKEN }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           git push hf main --force-with-lease
         timeout-minutes: 5  # Timeout específico para o push
