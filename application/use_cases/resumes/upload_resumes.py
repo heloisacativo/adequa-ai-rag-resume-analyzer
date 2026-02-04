@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import final, Optional
 from uuid import UUID, uuid4
+import tempfile
+import shutil
 
 from application.dtos.resumes.resume import UploadResultDTO, ResumeDTO
 from application.interfaces.ai.indexer import IndexerProtocol
@@ -42,8 +44,17 @@ class UploadResumesUseCase:
             file_path = await self._save_file(filename, content)
             saved_paths.append(file_path)
         
-        # 2. Indexa documentos
-        vector_index_id = await self.indexer.index_documents(saved_paths)
+        # 2. Prepara arquivos para indexação (baixa do SQLite se necessário)
+        files_for_indexing, temp_dir = await self._prepare_files_for_indexing(saved_paths)
+        
+        try:
+            # 3. Indexa documentos
+            vector_index_id = await self.indexer.index_documents(files_for_indexing)
+        finally:
+            # Limpa arquivos temporários se foram criados
+            if temp_dir and temp_dir.exists():
+                print(f"🧹 Limpando diretório temporário: {temp_dir}")
+                shutil.rmtree(temp_dir, ignore_errors=True)
         
         # 3. Cria entidades e persiste
         resume_entities = []
@@ -106,6 +117,50 @@ class UploadResumesUseCase:
             file_path = subdir / filename
             file_path.write_bytes(content)
             return file_path
+    
+    async def _prepare_files_for_indexing(self, saved_paths: list[Path]) -> tuple[list[Path], Optional[Path]]:
+        """
+        Prepara arquivos para indexação. Se os arquivos estão no SQLite,
+        baixa para um diretório temporário local.
+        
+        Returns:
+            tuple: (lista de paths locais para indexação, diretório temporário ou None)
+        """
+        temp_dir = None
+        local_paths = []
+        
+        for path in saved_paths:
+            path_str = str(path)
+            
+            # Se é um arquivo SQLite, precisa baixar
+            if path_str.startswith("sqlite://"):
+                if not self.sqlite_storage:
+                    raise ValueError("SQLite storage não disponível para baixar arquivos")
+                
+                # Cria diretório temporário na primeira vez
+                if temp_dir is None:
+                    temp_dir = Path(tempfile.mkdtemp(prefix="sqlite_index_"))
+                    print(f"📁 Criado diretório temporário para indexação: {temp_dir}")
+                
+                # Baixa o arquivo do SQLite
+                print(f"📥 Baixando {path_str} do SQLite para indexação...")
+                file_content = await self.sqlite_storage.download_file(path_str)
+                
+                # Extrai o nome do arquivo do path SQLite
+                # Formato: sqlite://pdf/arquivo.pdf -> arquivo.pdf
+                file_key = path_str.replace("sqlite://", "")
+                filename = file_key.split("/")[-1] if "/" in file_key else file_key
+                
+                # Salva no diretório temporário
+                local_path = temp_dir / filename
+                local_path.write_bytes(file_content)
+                local_paths.append(local_path)
+                print(f"✅ Arquivo baixado: {local_path} ({len(file_content)} bytes)")
+            else:
+                # Arquivo já está local, usa diretamente
+                local_paths.append(path)
+        
+        return local_paths, temp_dir
     
     def _extract_name(self, path: Path) -> str:
         # Implementar extração de nome do PDF/DOCX
