@@ -104,10 +104,10 @@ const FileInput = ({ label, setIndexId, onSuccess }: FileInputProps) => {
               
               py-3 px-4
               text-sm font-bold
-              bg-gray-100 text-neo-primary
+              bg-gray-100 text-neo-secondary
               cursor-pointer
               
-              hover:bg-neo-primary
+              
               
               border-2 border-black rounded-lg
               bg-white
@@ -129,8 +129,8 @@ const FileInput = ({ label, setIndexId, onSuccess }: FileInputProps) => {
           className="
             flex items-center justify-center gap-2
             px-6 py-3
-            bg-neo-secondary text-neo-primary font-bold uppercase tracking-wider
-            border-2 border-black rounded-lg
+            bg-neo-secondary text-neo-secondary font-bold uppercase tracking-wider
+            border-2 border-neo-primary rounded-lg
             shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
             
             hover:bg-gray-800 hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]
