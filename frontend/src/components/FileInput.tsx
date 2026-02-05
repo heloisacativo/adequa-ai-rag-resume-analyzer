@@ -104,10 +104,10 @@ const FileInput = ({ label, setIndexId, onSuccess }: FileInputProps) => {
               
               py-3 px-4
               text-sm font-bold
-              bg-gray-100 text-neo-primary
+              bg-gray-100 text-neo-secondary
               cursor-pointer
               
-              hover:bg-neo-primary
+              
               
               border-2 border-black rounded-lg
               bg-white

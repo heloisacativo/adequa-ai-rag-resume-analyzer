@@ -215,7 +215,7 @@ export default function JobsManagement() {
                   </button>
                   <button 
                     type="submit" 
-                    className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 bg-neo-secondary text-neo-primary font-bold uppercase border-2 border-black rounded hover:bg-gray-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)] active:translate-y-[2px] active:shadow-none transition-all text-sm sm:text-base"
+                    className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 bg-neo-secondary text-neo-seconday font-bold uppercase border-2 border-black rounded hover:bg-gray-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)] active:translate-y-[2px] active:shadow-none transition-all text-sm sm:text-base"
                   >
                     {editingJob ? 'Salvar Alterações' : 'Publicar Vaga'}
                   </button>
