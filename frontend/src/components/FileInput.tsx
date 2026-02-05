@@ -100,7 +100,7 @@ const FileInput = ({ label, setIndexId, onSuccess }: FileInputProps) => {
           <label
             htmlFor="file-input"
             className="
-              block w-full text-sm text-gray-500
+              block w-full text-sm text-neo-secondary
               
               py-3 px-4
               text-sm font-bold
@@ -129,7 +129,7 @@ const FileInput = ({ label, setIndexId, onSuccess }: FileInputProps) => {
           className="
             flex items-center justify-center gap-2
             px-6 py-3
-            bg-neo-secondary text-neo-primary font-bold uppercase tracking-wider
+            bg-neo-primary text-neo-secondary font-bold uppercase tracking-wider
             border-2 border-black rounded-lg
             shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
             
