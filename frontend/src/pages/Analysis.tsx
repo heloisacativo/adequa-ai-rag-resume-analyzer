@@ -5,7 +5,7 @@ import ChatProvider from "../contexts/ChatProvider";
 import { useResumeUpload } from "../hooks/useResumeUpload";
 import { resumeService } from "../lib/api";
 import { useToast } from "../hooks/use-toats";
-import { Upload, Database, FileText, ArrowLeft, CheckCircle, Clock, Loader2, Play } from "lucide-react";
+import { Upload, Database, FileText, ArrowLeft, CheckCircle, Clock, Loader2, Play, Search } from "lucide-react";
 import { cn } from "../lib/utils";
 
 import { API_URL } from '../lib/api';
@@ -35,6 +35,7 @@ function Analysis() {
   const [localResumes, setLocalResumes] = useState<LocalResume[]>([]);
   const [databaseResumes, setDatabaseResumes] = useState<DatabaseResume[]>([]);
   const [selectedResumes, setSelectedResumes] = useState<string[]>([]);
+  const [resumeSearchQuery, setResumeSearchQuery] = useState("");
   const [loadingResumes, setLoadingResumes] = useState(true);
   const [uploading, setUploading] = useState(false);
   
@@ -150,6 +151,16 @@ function Analysis() {
     return [...databaseResumes, ...localOnly] as (DatabaseResume | LocalResume)[];
   }, [databaseResumes, localResumes]);
 
+  const filteredResumesForSelection = useMemo(() => {
+    const q = resumeSearchQuery.trim().toLowerCase();
+    if (!q) return mergedResumesForSelection;
+    return mergedResumesForSelection.filter(
+      (r) =>
+        r.candidate_name.toLowerCase().includes(q) ||
+        r.file_name.toLowerCase().includes(q)
+    );
+  }, [mergedResumesForSelection, resumeSearchQuery]);
+
   return (
     <ChatProvider indexId={indexId}>
       <div className="min-h-screen bg-gray-50 font-sans text-black pb-20">
@@ -256,12 +267,23 @@ function Analysis() {
                         <button
                           onClick={handleLocalUpload}
                           disabled={uploading}
-                          className="flex items-center gap-2 bg-black text-white px-6 py-3 rounded font-bold uppercase tracking-wide hover:bg-gray-800 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)] active:translate-y-[2px] active:shadow-none disabled:opacity-70 disabled:cursor-not-allowed"
+                          className="cursor-pointer flex items-center gap-2 border-2 border-black bg-neo-primary text-black px-6 py-3 rounded-lg font-bold uppercase tracking-wide transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)] active:translate-y-[2px] active:shadow-none disabled:opacity-70 disabled:cursor-not-allowed"
                         >
                           {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
                           {uploading ? 'Processando...' : `Analisar (${selectedResumes.length})`}
                         </button>
                       )}
+                    </div>
+
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                      <input
+                        type="text"
+                        placeholder="Pesquisar por nome ou arquivo..."
+                        value={resumeSearchQuery}
+                        onChange={(e) => setResumeSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 rounded font-medium text-sm placeholder:text-gray-400 focus:border-black focus:outline-none bg-white"
+                      />
                     </div>
 
                     {loadingResumes ? (
@@ -270,8 +292,8 @@ function Analysis() {
                         <p className="font-bold">Carregando base de dados...</p>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
-                        {mergedResumesForSelection.map((resume) => {
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+                        {filteredResumesForSelection.map((resume) => {
                           const isLocal = 'id' in resume;
                           const id = isLocal ? (resume as LocalResume).id : (resume as DatabaseResume).resume_id;
                           const isSelected = selectedResumes.includes(id);
@@ -280,13 +302,13 @@ function Analysis() {
                             <label 
                               key={id}
                               className={cn(
-                                "cursor-pointer relative flex flex-col p-4 border-2 rounded transition-all duration-200",
+                                "cursor-pointer relative flex flex-col p-2.5 border-2 rounded transition-all duration-200",
                                 isSelected 
-                                  ? "border-black bg-blue-50 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] -translate-y-[2px]" 
+                                  ? "border-black bg-blue-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] -translate-y-[1px]" 
                                   : "border-gray-200 bg-white hover:border-black hover:shadow-sm"
                               )}
                             >
-                              <div className="flex justify-between items-start mb-3">
+                              <div className="flex justify-between items-start mb-1.5">
                                 <input
                                   type="checkbox"
                                   checked={isSelected}
@@ -294,31 +316,25 @@ function Analysis() {
                                   className="checkbox checkbox-sm rounded-sm border-2 border-black checked:bg-black checked:text-white"
                                   disabled={isLocal && !(resume as LocalResume).file}
                                 />
-                                <span className={cn(
-                                  "text-[10px] font-black px-2 py-0.5 rounded border border-black uppercase",
-                                  isLocal ? "bg-green-200" : "bg-blue-200"
-                                )}>
-                                  {isLocal ? 'Local' : 'Database'}
-                                </span>
                               </div>
 
-                              <div className="flex-1">
-                                <h4 className="font-bold text-lg leading-tight mb-1 truncate" title={resume.candidate_name}>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-bold text-sm leading-tight mb-0.5 truncate" title={resume.candidate_name}>
                                   {resume.candidate_name}
                                 </h4>
-                                <div className="flex items-center gap-1.5 text-gray-500 text-xs font-medium mb-3">
-                                  <FileText className="w-3 h-3" />
-                                  <span className="truncate max-w-[150px]">{resume.file_name}</span>
+                                <div className="flex items-center gap-1 text-gray-500 text-[11px] font-medium mb-1.5">
+                                  <FileText className="w-2.5 h-2.5 shrink-0" />
+                                  <span className="truncate">{resume.file_name}</span>
                                 </div>
                               </div>
 
-                              <div className="mt-auto pt-3 border-t border-gray-100 flex justify-between items-center text-xs text-gray-400 font-mono">
-                                <div className="flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
+                              <div className="mt-auto pt-2 border-t border-gray-100 flex justify-between items-center text-[10px] text-gray-400 font-mono">
+                                <div className="flex items-center gap-0.5">
+                                  <Clock className="w-2.5 h-2.5" />
                                   {new Date(resume.uploaded_at).toLocaleDateString('pt-BR')}
                                 </div>
                                 {isLocal && !(resume as LocalResume).file && (
-                                  <span className="text-red-500 font-bold text-[10px]">Sem Arquivo</span>
+                                  <span className="text-red-500 font-bold text-[9px]">Sem Arquivo</span>
                                 )}
                               </div>
                             </label>
