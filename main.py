@@ -30,16 +30,24 @@ logger = structlog.get_logger(__name__)
 
 
 def get_cors_origins():
+    """Allowed CORS origins. With credentials=True, browser requires explicit origins (not '*')."""
+    default_dev_origins = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ]
     raw_origins = os.getenv("CORS_ORIGINS")
-    
     if raw_origins:
         try:
-            return json.loads(raw_origins)
+            origins = json.loads(raw_origins)
+            if origins and origins != ["*"]:
+                return origins
         except json.JSONDecodeError:
-            print("❌ Erro ao decodificar CORS_ORIGINS. Usando ['*']")
-            return ["*"]
-    
-    return ["*"]
+            print("❌ Erro ao decodificar CORS_ORIGINS. Usando origens de desenvolvimento.")
+    return default_dev_origins
 
 
 @asynccontextmanager

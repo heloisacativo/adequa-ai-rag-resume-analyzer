@@ -36,3 +36,7 @@ class CreateChatSessionRequest(BaseModel):
 class AddMessageRequest(BaseModel):
     sender: str = Field(..., description="The sender of the message")
     text: str = Field(..., description="The message text")
+
+
+class UpdateChatSessionRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255, description="The new chat session title")

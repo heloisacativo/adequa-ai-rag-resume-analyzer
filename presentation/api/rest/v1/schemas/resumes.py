@@ -8,6 +8,7 @@ class ResumeSchema(BaseModel):
     file_name: str
     uploaded_at: str
     is_indexed: bool
+    vector_index_id: Optional[str] = None
 
 class UploadResponse(BaseModel):
     message: str
@@ -31,3 +32,22 @@ class ListResumesResponse(BaseModel):
     """Resposta com lista de currículos."""
     resumes: list[ResumeSchema]
     total: int
+
+
+class ResumeGroupSchema(BaseModel):
+    group_id: str
+    name: str
+    created_at: str
+    resume_count: int = 0
+
+
+class ListResumeGroupsResponse(BaseModel):
+    groups: list[ResumeGroupSchema]
+
+
+class CreateResumeGroupRequest(BaseModel):
+    name: str
+
+
+class SetGroupResumesRequest(BaseModel):
+    resume_ids: list[str]

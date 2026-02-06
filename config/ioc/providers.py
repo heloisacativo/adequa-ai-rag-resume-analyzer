@@ -1,5 +1,5 @@
 from collections.abc import AsyncIterator
-from typing import Any
+from typing import Any, Optional
 
 from dishka import Provider, Scope, provide
 from httpx import AsyncClient
@@ -36,6 +36,7 @@ from infrastructures.db.mappers.jobs.job_db_mapper import JobDBMapper
 from infrastructures.db.repositories.users.user import UserRepositorySQLAlchemy
 from infrastructures.db.repositories.jobs.job import JobRepositorySQLAlchemy
 from infrastructures.repositories.chat_repository_sqlalchemy import ChatRepositorySqlAlchemy
+from infrastructures.repositories.chat_repository_supabase import ChatRepositorySupabase
 from infrastructures.repositories.job_application_repository_sqlalchemy import JobApplicationRepository
 from infrastructures.db.session import create_engine, get_session_factory
 from infrastructures.db.uow import UnitOfWorkSQLAlchemy
@@ -64,6 +65,7 @@ from application.interfaces.ai.analyzer import AIAnalyzerProtocol
 from application.interfaces.ai.transformer import TransformerProtocol
 from application.interfaces.ai.location_analyzer import LocationAnalyzerProtocol
 from application.interfaces.resumes.repositories import ResumeRepositoryProtocol
+from application.interfaces.resumes.resume_group_repository import ResumeGroupRepositoryProtocol
 
 # Implementações
 from infrastructures.ai.llama_indexer import LlamaIndexer
@@ -78,6 +80,11 @@ from application.use_cases.resumes.ensure_upload_user import EnsureResumeUploadU
 from application.use_cases.resumes.list_indexes import ListIndexesUseCase
 from application.use_cases.resumes.list_resumes import ListResumesUseCase
 from application.use_cases.resumes.delete_resume import DeleteResumeUseCase
+from application.use_cases.resumes.list_resume_groups import ListResumeGroupsUseCase
+from application.use_cases.resumes.create_resume_group import CreateResumeGroupUseCase
+from application.use_cases.resumes.delete_resume_group import DeleteResumeGroupUseCase
+from application.use_cases.resumes.list_resumes_by_group import ListResumesByGroupUseCase
+from application.use_cases.resumes.set_group_resumes import SetGroupResumesUseCase
 from application.use_cases.candidates.analyze_resume import AnalyzeResumeUseCase
 from application.use_cases.candidates.analyze_stored_resume import AnalyzeStoredResumeUseCase
 from application.use_cases.candidates.analyze import AnalyzeCandidatesUseCase
@@ -89,7 +96,9 @@ from application.use_cases.candidates.list_job_applications import ListJobApplic
 from application.use_cases.candidates.update_job_application_status import UpdateJobApplicationStatusUseCase
 from application.interfaces.candidates.repositories import JobApplicationRepositoryProtocol
 from infrastructures.repositories.resume_repository_sqlalchemy import ResumeRepositorySqlAlchemy
+from infrastructures.repositories.resume_group_repository_sqlalchemy import ResumeGroupRepositorySqlAlchemy
 from infrastructures.db.models.candidates.job_application import JobApplicationModel  # Import to register the model
+from infrastructures.db.models.resumes.resume_group import ResumeGroupModel, ResumeGroupMemberModel  # Register models
 
 
 class SettingsProvider(Provider):
@@ -135,6 +144,28 @@ class DatabaseProvider(Provider):
             yield session
 
 
+class ChatDatabaseProvider(Provider):
+    """
+    When CHAT_DATABASE_URL is set (e.g. Supabase), provides a session factory for chat.
+    Histórico de conversas passa a ser salvo no Supabase em vez do SQLite/PythonAnywhere.
+    """
+
+    @provide(scope=Scope.APP)
+    async def get_chat_session_factory(
+        self, settings: Settings
+    ) -> AsyncIterator[Optional[async_sessionmaker[AsyncSession]]]:
+        url = settings.database.chat_database_url_async
+        if not url:
+            yield None
+            return
+        engine = create_engine(str(url), is_echo=settings.debug)
+        session_factory = get_session_factory(engine)
+        try:
+            yield session_factory
+        finally:
+            await engine.dispose()
+
+
 class RepositoryProvider(Provider):
     """
     Provides repository implementations.
@@ -160,11 +191,15 @@ class RepositoryProvider(Provider):
 
     @provide(scope=Scope.REQUEST)
     def get_chat_repository(
-        self, session: AsyncSession
+        self,
+        session: AsyncSession,
+        chat_session_factory: Optional[async_sessionmaker[AsyncSession]],
     ) -> ChatRepositoryProtocol:
         """
-        Provides a ChatRepositoryProtocol implementation.
+        Chat no Supabase quando CHAT_DATABASE_URL está definido; senão usa o banco principal (SQLite).
         """
+        if chat_session_factory is not None:
+            return ChatRepositorySupabase(session_factory=chat_session_factory)
         return ChatRepositorySqlAlchemy(session=session)
 
 
@@ -588,7 +623,47 @@ class ResumeUseCaseProvider(Provider):
         uow: UnitOfWorkProtocol,
     ) -> DeleteResumeUseCase:
         return DeleteResumeUseCase(repository=repository, uow=uow)
-    
+
+    @provide(scope=Scope.REQUEST)
+    def get_resume_group_repository(self, session: AsyncSession) -> ResumeGroupRepositoryProtocol:
+        return ResumeGroupRepositorySqlAlchemy(session=session)
+
+    @provide(scope=Scope.REQUEST)
+    def get_list_resume_groups_use_case(
+        self,
+        repository: ResumeGroupRepositoryProtocol,
+    ) -> ListResumeGroupsUseCase:
+        return ListResumeGroupsUseCase(repository=repository)
+
+    @provide(scope=Scope.REQUEST)
+    def get_create_resume_group_use_case(
+        self,
+        repository: ResumeGroupRepositoryProtocol,
+    ) -> CreateResumeGroupUseCase:
+        return CreateResumeGroupUseCase(repository=repository)
+
+    @provide(scope=Scope.REQUEST)
+    def get_delete_resume_group_use_case(
+        self,
+        repository: ResumeGroupRepositoryProtocol,
+    ) -> DeleteResumeGroupUseCase:
+        return DeleteResumeGroupUseCase(repository=repository)
+
+    @provide(scope=Scope.REQUEST)
+    def get_list_resumes_by_group_use_case(
+        self,
+        group_repository: ResumeGroupRepositoryProtocol,
+        resume_repository: ResumeRepositoryProtocol,
+    ) -> ListResumesByGroupUseCase:
+        return ListResumesByGroupUseCase(group_repository=group_repository, resume_repository=resume_repository)
+
+    @provide(scope=Scope.REQUEST)
+    def get_set_group_resumes_use_case(
+        self,
+        repository: ResumeGroupRepositoryProtocol,
+    ) -> SetGroupResumesUseCase:
+        return SetGroupResumesUseCase(repository=repository)
+
     @provide(scope=Scope.REQUEST)
     def get_job_application_repository(self, session: AsyncSession) -> JobApplicationRepositoryProtocol:
         return JobApplicationRepository(session=session)

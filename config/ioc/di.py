@@ -2,6 +2,7 @@ from dishka import Provider, Scope, provide
 
 from config.ioc.providers import (
     CacheProvider,
+    ChatDatabaseProvider,
     DatabaseProvider,
     MapperProvider,
     RepositoryProvider,
@@ -13,7 +14,7 @@ from config.ioc.providers import (
     AIProvider,
     ResumeUseCaseProvider,
     JobUseCaseProvider,
-    AISettingsProvider,  # <--- adicione aqui
+    AISettingsProvider,
 )
 from application.use_cases.users.register_user import RegisterUserUseCase
 
@@ -24,6 +25,7 @@ def get_providers() -> list[Provider]:
     for ProviderClass in [
         SettingsProvider,
         DatabaseProvider,
+        ChatDatabaseProvider,
         RepositoryProvider,
         MapperProvider,
         CacheProvider,

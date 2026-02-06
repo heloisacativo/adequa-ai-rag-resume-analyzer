@@ -1,10 +1,10 @@
 from dishka.integrations.fastapi import FromDishka, inject
-from fastapi import APIRouter, status, Depends, Query
+from fastapi import APIRouter, status, HTTPException, Query
 from typing import List
 from uuid import UUID
 
 from application.services.chat.chat_service import ChatService
-from presentation.api.rest.v1.schemas.requests import CreateChatSessionRequest, AddMessageRequest
+from presentation.api.rest.v1.schemas.requests import CreateChatSessionRequest, AddMessageRequest, UpdateChatSessionRequest
 from presentation.api.rest.v1.schemas.responses import ChatSessionResponse, ChatMessageResponse
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
@@ -111,3 +111,60 @@ async def get_session_messages(
         )
         for m in messages
     ]
+
+
+@router.patch(
+    "/sessions/{session_id}",
+    response_model=ChatSessionResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Update a chat session title",
+)
+@inject
+async def update_session(
+    session_id: str,
+    request: UpdateChatSessionRequest,
+    user_id: str = Query(..., description="User ID (owner of the session)"),
+    chat_service: FromDishka[ChatService] = None,
+):
+    """Update the title of a chat session. Only the owner can update."""
+    if user_id == "fake_user":
+        user_uuid = UUID("12345678-1234-5678-9012-123456789012")
+    else:
+        try:
+            user_uuid = UUID(user_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid user_id format")
+    updated = await chat_service.update_session_title(UUID(session_id), request.title, user_uuid)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Session not found or you are not the owner")
+    session = await chat_service.get_session(UUID(session_id))
+    return ChatSessionResponse(
+        session_id=str(session.session_id),
+        user_id=str(session.user_id),
+        title=session.title,
+        created_at=session.created_at,
+    )
+
+
+@router.delete(
+    "/sessions/{session_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a chat session",
+)
+@inject
+async def delete_session(
+    session_id: str,
+    user_id: str = Query(..., description="User ID (owner of the session)"),
+    chat_service: FromDishka[ChatService] = None,
+):
+    """Delete a chat session. Only the owner (user_id) can delete."""
+    if user_id == "fake_user":
+        user_uuid = UUID("12345678-1234-5678-9012-123456789012")
+    else:
+        try:
+            user_uuid = UUID(user_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid user_id format")
+    deleted = await chat_service.delete_session(UUID(session_id), user_uuid)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Session not found or you are not the owner")

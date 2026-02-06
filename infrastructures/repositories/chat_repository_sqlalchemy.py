@@ -2,7 +2,7 @@
 from uuid import UUID
 from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, delete, update
 
 from domain.entities.chat.chat_session import ChatSessionEntity
 from domain.entities.chat.chat_message import ChatMessageEntity
@@ -85,3 +85,14 @@ class ChatRepositorySqlAlchemy:
             )
             for model in models
         ]
+
+    async def delete_session(self, session_id: UUID) -> None:
+        """Delete a chat session and its messages (messages first due to FK)."""
+        await self.session.execute(delete(ChatMessageModel).where(ChatMessageModel.session_id == str(session_id)))
+        await self.session.execute(delete(ChatSessionModel).where(ChatSessionModel.session_id == str(session_id)))
+
+    async def update_session_title(self, session_id: UUID, title: str) -> None:
+        """Update the title of a chat session."""
+        await self.session.execute(
+            update(ChatSessionModel).where(ChatSessionModel.session_id == str(session_id)).values(title=title)
+        )

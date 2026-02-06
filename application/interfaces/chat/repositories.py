@@ -31,3 +31,13 @@ class ChatRepositoryProtocol(Protocol):
     async def get_messages_by_session(self, session_id: UUID) -> List[ChatMessageEntity]:
         """Get all messages for a chat session."""
         ...
+
+    @abstractmethod
+    async def delete_session(self, session_id: UUID) -> None:
+        """Delete a chat session and its messages."""
+        ...
+
+    @abstractmethod
+    async def update_session_title(self, session_id: UUID, title: str) -> None:
+        """Update the title of a chat session."""
+        ...

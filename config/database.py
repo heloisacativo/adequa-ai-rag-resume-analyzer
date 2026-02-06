@@ -32,6 +32,9 @@ class DatabaseSettings(BaseSettings):
 
     # PostgreSQL / Supabase: connection string (ex.: Supabase Project Settings > Database)
     database_url_raw: str | None = Field(default=None, alias="DATABASE_URL")
+
+    # Chat em Supabase: quando definido, histórico de conversas usa este banco (ex.: connection string do Supabase)
+    chat_database_url: str | None = Field(default=None, alias="CHAT_DATABASE_URL")
     postgres_user: str = Field(default="postgres", alias="POSTGRES_USER")
     postgres_password: str = Field(default="", alias="POSTGRES_PASSWORD")
     postgres_server: str = Field(default="localhost", alias="POSTGRES_SERVER")
@@ -62,6 +65,19 @@ class DatabaseSettings(BaseSettings):
     @property
     def sqlalchemy_database_uri(self) -> str:
         return self.database_url
+
+    @property
+    def chat_database_url_async(self) -> str | None:
+        """
+        URL async para o banco de chat (Supabase). None se CHAT_DATABASE_URL não estiver definido.
+        Use para persistir histórico de conversas no Supabase em vez do SQLite/PythonAnywhere.
+        """
+        url = (self.chat_database_url or "").strip()
+        if not url:
+            return None
+        if "postgresql" in url or url.startswith("postgres://"):
+            return _to_async_pg_url(url)
+        return url
 
     def database_display(self) -> str:
         """

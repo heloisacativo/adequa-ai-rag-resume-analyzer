@@ -1,5 +1,6 @@
 from typing import Annotated
 from pathlib import Path
+from uuid import UUID
 import os
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
@@ -52,8 +53,11 @@ async def upload_resumes(
         content = await file.read()
         file_data.append((file.filename, content))
     
-    # TODO: quando auth estiver ativo, usar current_user.user_id em vez de RESUME_UPLOAD_USER_ID
-    user_id = current_user.id
+    try:
+        user_id = UUID(current_user.id)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="ID do usuário inválido")
+    
     await ensure_upload_user.execute(user_id)
     
     # Adiciona os novos currículos (não remove os existentes; limite total por usuário no use case)
@@ -83,8 +87,11 @@ async def list_indexes(
     current_user: CurrentUser = Depends(get_current_user)
 ):
     """Lista todos os índices vetoriais salvos com seus currículos"""
-    
-    indexes_dict = await use_case.execute(user_id=current_user.id)
+    try:
+        user_id = UUID(current_user.id)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="ID do usuário inválido")
+    indexes_dict = await use_case.execute(user_id=user_id)
     
     # Converte para o formato de resposta
     indexes_response = {
@@ -101,8 +108,11 @@ async def list_resumes(
     current_user: CurrentUser = Depends(get_current_user)
 ):
     """Lista todos os currículos salvos"""
-    
-    resumes_dto = await use_case.execute(user_id=current_user.id)
+    try:
+        user_id = UUID(current_user.id)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="ID do usuário inválido")
+    resumes_dto = await use_case.execute(user_id=user_id)
     
     resumes_schema = [
         ResumeSchema(
@@ -110,7 +120,8 @@ async def list_resumes(
             candidate_name=r.candidate_name,
             file_name=r.file_name,
             uploaded_at=r.uploaded_at.isoformat(),
-            is_indexed=r.is_indexed
+            is_indexed=r.is_indexed,
+            vector_index_id=r.vector_index_id
         )
         for r in resumes_dto
     ]
@@ -128,8 +139,11 @@ async def download_resume(
     current_user: CurrentUser = Depends(get_current_user)
 ):
     """Download um currículo específico"""
-    
-    resumes_dto = await use_case.execute(user_id=current_user.id)
+    try:
+        user_id = UUID(current_user.id)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="ID do usuário inválido")
+    resumes_dto = await use_case.execute(user_id=user_id)
     
     resume = next((r for r in resumes_dto if str(r.resume_id) == resume_id), None)
     
@@ -137,8 +151,10 @@ async def download_resume(
         raise HTTPException(status_code=404, detail="Currículo não encontrado")
     
     file_path_str = str(resume.file_path)
+    # No Windows, path pode estar como sqlite:\pdf\...; normalizar para detectar storage remoto
+    file_path_norm = file_path_str.replace("\\", "/")
     
-    if file_path_str.startswith("sqlite://"):
+    if file_path_norm.startswith("sqlite://") or file_path_norm.startswith("sqlite:/"):
         try:
             from config.ai.ai import AISettings
             from infrastructures.storage.sqlite_storage import SQLiteFileStorageService, HTTPFileStorageService
@@ -152,13 +168,15 @@ async def download_resume(
             storage_url = ai_settings.sqlite_storage_url.strip()
             
             if storage_url.startswith(('http://', 'https://')):
-                print(f"📥 Download via PythonAnywhere HTTP: {file_path_str}")
+                print(f"📥 Download via PythonAnywhere HTTP: {file_path_norm}")
                 sqlite_storage = HTTPFileStorageService(storage_url)
             else:
-                print(f"📥 Download via SQLite local: {file_path_str}")
+                print(f"📥 Download via SQLite local: {file_path_norm}")
                 sqlite_storage = SQLiteFileStorageService(storage_url)
             
-            file_content = await sqlite_storage.download_file(file_path_str)
+            # Chave no formato sqlite://ext/filename (download_file aceita com ou sem prefixo)
+            download_key = file_path_norm if file_path_norm.startswith("sqlite://") else "sqlite://" + file_path_norm.lstrip("sqlite:/")
+            file_content = await sqlite_storage.download_file(download_key)
             print(f"✅ Download concluído: {len(file_content)} bytes")
             
             return StreamingResponse(
