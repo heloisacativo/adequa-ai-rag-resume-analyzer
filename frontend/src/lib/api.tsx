@@ -123,6 +123,18 @@ export interface ListResumesResponse {
   total: number;
 }
 
+// Resume groups (agrupar currículos para usar na Análise)
+export interface ResumeGroup {
+  group_id: string;
+  name: string;
+  created_at: string;
+  resume_count: number;
+}
+
+export interface ListResumeGroupsResponse {
+  groups: ResumeGroup[];
+}
+
 // Job interfaces
 export interface Job {
   id: string;
@@ -178,8 +190,9 @@ class ResumeService {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || error.detail || 'Falha ao enviar currículos');
+      const error = await response.json().catch(() => ({}));
+      const msg = error.message ?? (typeof error.detail === 'string' ? error.detail : Array.isArray(error.detail) ? error.detail[0]?.msg ?? error.detail[0] : undefined) ?? 'Falha ao enviar currículos';
+      throw new Error(msg);
     }
 
     return response.json();
@@ -275,6 +288,71 @@ class ResumeService {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.detail || 'Failed to delete resume');
+    }
+  }
+
+  // Grupos de currículos
+  async listResumeGroups(): Promise<ListResumeGroupsResponse> {
+    const response = await fetch(`${this.baseUrl}/resumes/groups`, {
+      headers: { 'Authorization': `Bearer ${this.getToken()}` },
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Falha ao listar grupos');
+    }
+    return response.json();
+  }
+
+  async createResumeGroup(name: string): Promise<ResumeGroup> {
+    const response = await fetch(`${this.baseUrl}/resumes/groups`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.getToken()}`,
+      },
+      body: JSON.stringify({ name }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || error.message || 'Falha ao criar grupo');
+    }
+    return response.json();
+  }
+
+  async deleteResumeGroup(groupId: string): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/resumes/groups/${groupId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${this.getToken()}` },
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Falha ao excluir grupo');
+    }
+  }
+
+  async getGroupResumes(groupId: string): Promise<ListResumesResponse> {
+    const response = await fetch(`${this.baseUrl}/resumes/groups/${groupId}/resumes`, {
+      headers: { 'Authorization': `Bearer ${this.getToken()}` },
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Falha ao carregar currículos do grupo');
+    }
+    return response.json();
+  }
+
+  async setGroupResumes(groupId: string, resumeIds: string[]): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/resumes/groups/${groupId}/resumes`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.getToken()}`,
+      },
+      body: JSON.stringify({ resume_ids: resumeIds }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Falha ao atualizar grupo');
     }
   }
 
@@ -499,6 +577,41 @@ class ChatService {
 
     const data = await response.json();
     return data;
+  }
+
+  async deleteSession(sessionId: string, userId: string): Promise<void> {
+    const response = await fetch(
+      `${this.baseUrl}/chat/sessions/${sessionId}?user_id=${encodeURIComponent(userId)}`,
+      {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${this.getToken()}`,
+        },
+      }
+    );
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error((err as { detail?: string }).detail || 'Falha ao excluir conversa');
+    }
+  }
+
+  async updateSessionTitle(sessionId: string, userId: string, title: string): Promise<ChatSession> {
+    const response = await fetch(
+      `${this.baseUrl}/chat/sessions/${sessionId}?user_id=${encodeURIComponent(userId)}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.getToken()}`,
+        },
+        body: JSON.stringify({ title: title.trim() || 'Sem título' }),
+      }
+    );
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error((err as { detail?: string }).detail || 'Falha ao alterar título');
+    }
+    return response.json();
   }
 
   private getToken(): string {

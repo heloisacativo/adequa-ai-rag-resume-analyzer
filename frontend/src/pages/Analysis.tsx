@@ -1,11 +1,15 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useLocation, Link } from "react-router-dom";
 import FileInput from "../components/FileInput";
 import HistoryChat from "../components/HistoryChat";
 import ChatProvider from "../contexts/ChatProvider";
 import { useResumeUpload } from "../hooks/useResumeUpload";
-import { resumeService } from "../lib/api";
+import { useResumes } from "../hooks/useResumes";
+import { resumeService, chatService } from "../lib/api";
 import { useToast } from "../hooks/use-toats";
-import { Upload, Database, FileText, ArrowLeft, CheckCircle, Clock, Loader2, Play, Search } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import { Upload, Database, FileText, ArrowLeft, CheckCircle, Clock, Loader2, Play, Search, FolderOpen } from "lucide-react";
+import type { ResumeGroup } from "../lib/api";
 import { cn } from "../lib/utils";
 
 import { API_URL } from '../lib/api';
@@ -29,45 +33,80 @@ interface LocalResume {
 }
 
 function Analysis() {
+  const location = useLocation();
+  const openSessionId = (location.state as { openSessionId?: string } | null)?.openSessionId;
   const [currentStep, setCurrentStep] = useState(0);
   const [indexId, setIndexId] = useState<string>("");
   const [uploadMode, setUploadMode] = useState<'upload' | 'local'>('upload');
   const [localResumes, setLocalResumes] = useState<LocalResume[]>([]);
-  const [databaseResumes, setDatabaseResumes] = useState<DatabaseResume[]>([]);
   const [selectedResumes, setSelectedResumes] = useState<string[]>([]);
   const [resumeSearchQuery, setResumeSearchQuery] = useState("");
-  const [loadingResumes, setLoadingResumes] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [sessionIdFromAnalisar, setSessionIdFromAnalisar] = useState<string | null>(null);
+  const analisarInProgressRef = useRef(false);
+  const [resumeGroups, setResumeGroups] = useState<ResumeGroup[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState<string>("");
+  const [loadingGroups, setLoadingGroups] = useState(false);
   
+  const { user } = useAuth();
   const { uploadedData } = useResumeUpload();
   const { toast } = useToast();
+  const { resumes: resumesFromApi, isLoading: loadingResumes, invalidate: invalidateResumes } = useResumes(user?.id);
+
+  const databaseResumes: DatabaseResume[] = useMemo(() => {
+    const list = Array.isArray(resumesFromApi) ? resumesFromApi : [];
+    return list.map((r) => ({
+      resume_id: r.resume_id,
+      candidate_name: r.candidate_name,
+      file_name: r.file_name,
+      uploaded_at: r.uploaded_at,
+      is_indexed: r.is_indexed,
+      vector_index_id: r.vector_index_id ?? undefined,
+    }));
+  }, [resumesFromApi]);
 
   useEffect(() => {
-    const loadResumes = async () => {
-      setLoadingResumes(true);
-      try {
-        const response = await resumeService.listResumes();
-        setDatabaseResumes(response.resumes.map((r) => ({
-          resume_id: r.resume_id,
-          candidate_name: r.candidate_name,
-          file_name: r.file_name,
-          uploaded_at: r.uploaded_at,
-          is_indexed: r.is_indexed,
-          vector_index_id: r.vector_index_id ?? undefined,
-        })));
-      } catch (error) {
-        console.error('Erro ao carregar currículos do banco:', error);
-      } finally {
-        setLoadingResumes(false);
-      }
+    if (uploadMode !== "local" || !user?.id) return;
+    let cancelled = false;
+    setLoadingGroups(true);
+    resumeService
+      .listResumeGroups()
+      .then((res) => {
+        if (!cancelled) setResumeGroups(res.groups);
+      })
+      .catch(() => {
+        if (!cancelled) setResumeGroups([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingGroups(false);
+      });
+    return () => {
+      cancelled = true;
     };
-    loadResumes();
-  }, []);
+  }, [uploadMode, user?.id]);
+
+  const applyGroupSelection = async (groupId: string) => {
+    if (!groupId) {
+      setSelectedGroupId("");
+      setSelectedResumes([]);
+      return;
+    }
+    setSelectedGroupId(groupId);
+    try {
+      const res = await resumeService.getGroupResumes(groupId);
+      const ids = (res.resumes ?? []).map((r) => r.resume_id).filter((id) => databaseResumes.some((d) => d.resume_id === id));
+      setSelectedResumes(ids);
+    } catch {
+      setSelectedResumes([]);
+    }
+  };
 
   // Steps removidos para interface mais clean
 
   const handleLocalUpload = async () => {
     if (selectedResumes.length === 0) return;
+    if (analisarInProgressRef.current) return;
+    analisarInProgressRef.current = true;
 
     try {
       setUploading(true);
@@ -93,6 +132,17 @@ function Analysis() {
           return;
         }
         setIndexId(indexIdToUse);
+        if (user?.id) {
+          try {
+            const session = await chatService.createSession({
+              user_id: user.id,
+              title: `Análise de currículos (${selectedResumes.length})`,
+            });
+            setSessionIdFromAnalisar(session.session_id);
+          } catch (e) {
+            console.error("Erro ao criar sessão de chat:", e);
+          }
+        }
         setCurrentStep(1);
         setSelectedResumes([]);
         return;
@@ -116,6 +166,17 @@ function Analysis() {
 
       const data = await resumeService.uploadResumes(filesToUpload);
       setIndexId(data.vector_index_id);
+      if (user?.id) {
+        try {
+          const session = await chatService.createSession({
+            user_id: user.id,
+            title: `Análise de currículos (${selectedResumes.length})`,
+          });
+          setSessionIdFromAnalisar(session.session_id);
+        } catch (e) {
+          console.error("Erro ao criar sessão de chat:", e);
+        }
+      }
       setCurrentStep(1);
       setSelectedResumes([]);
     } catch (error: unknown) {
@@ -127,6 +188,7 @@ function Analysis() {
       });
     } finally {
       setUploading(false);
+      analisarInProgressRef.current = false;
     }
   };
 
@@ -242,7 +304,10 @@ function Analysis() {
                     <FileInput 
                       label="" 
                       setIndexId={setIndexId}
-                      onSuccess={() => setCurrentStep(1)}
+                      onSuccess={() => {
+                        invalidateResumes();
+                        setCurrentStep(1);
+                      }}
                     />
 
                     {uploadedData && (
@@ -275,15 +340,40 @@ function Analysis() {
                       )}
                     </div>
 
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                      <input
-                        type="text"
-                        placeholder="Pesquisar por nome ou arquivo..."
-                        value={resumeSearchQuery}
-                        onChange={(e) => setResumeSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 rounded font-medium text-sm placeholder:text-gray-400 focus:border-black focus:outline-none bg-white"
-                      />
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="flex items-center gap-2 min-w-0 sm:min-w-[200px]">
+                        <FolderOpen className="w-4 h-4 text-gray-500 shrink-0" />
+                        <label className="text-xs font-black uppercase text-gray-600 shrink-0">Usar grupo:</label>
+                        <select
+                          value={selectedGroupId}
+                          onChange={(e) => applyGroupSelection(e.target.value)}
+                          disabled={loadingGroups}
+                          className="flex-1 min-w-0 p-2 border-2 border-gray-200 rounded font-medium text-sm focus:border-black focus:outline-none bg-white disabled:opacity-70"
+                        >
+                          <option value="">Nenhum</option>
+                          {resumeGroups.map((g) => (
+                            <option key={g.group_id} value={g.group_id}>
+                              {g.name} ({g.resume_count})
+                            </option>
+                          ))}
+                        </select>
+                        <Link
+                          to="/resumes/groups"
+                          className="text-xs font-bold text-gray-600 hover:text-black underline underline-offset-2 shrink-0"
+                        >
+                          Gerenciar grupos
+                        </Link>
+                      </div>
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                        <input
+                          type="text"
+                          placeholder="Pesquisar por nome ou arquivo..."
+                          value={resumeSearchQuery}
+                          onChange={(e) => setResumeSearchQuery(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 rounded font-medium text-sm placeholder:text-gray-400 focus:border-black focus:outline-none bg-white"
+                        />
+                      </div>
                     </div>
 
                     {loadingResumes ? (
@@ -364,7 +454,7 @@ function Analysis() {
 
               {/* Chat Component */}
                 <div className="bg-white border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden h-full">
-                <HistoryChat indexId={indexId} />
+                <HistoryChat indexId={indexId} openSessionId={openSessionId ?? sessionIdFromAnalisar ?? undefined} />
                 </div>
             </div>
           )}

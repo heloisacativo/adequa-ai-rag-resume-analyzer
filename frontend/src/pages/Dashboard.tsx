@@ -63,8 +63,11 @@ export default function RecruiterDashboard() {
       <div className="space-y-6 w-full min-w-0">
         {/* Header */}
         <div>
-          <p className="text-2xl text-neo-secondary mt-1">Analise curriculos utilizando IA</p>
-        </div>
+            <h1 className="text-4xl font-black uppercase tracking-tighter mb-0.5">Visão Geral</h1>
+            <p className="text-gray-600 font-medium">
+             Tudo o que você precisa para gerenciar vagas e candidatos em um só lugar com Inteligência Artificial
+            </p>
+          </div>
 
         {/* Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -12,15 +12,18 @@ import {
   Brain,
   Menu,
   X,
+  MessageSquare,
+  FolderOpen,
 } from "lucide-react";
 import adequa from "../../assets/adequa.png";
 
 const recruiterNavItems = [
   { to: "/dashboard", label: "Início", icon: LayoutDashboard },
   { to: "/ia-analysis", label: "Análise com IA", icon: Brain },
+  { to: "/chat-history", label: "Histórico de conversas", icon: MessageSquare },
   { to: "/jobs", label: "Gerenciar Vagas", icon: Briefcase },
   { to: "/resumes", label: "Currículos", icon: FileText },
-  // { to: '/ai-analysis', label: 'Análise IA', icon: FileSearch },
+  { to: "/resumes/groups", label: "Grupos de currículos", icon: FolderOpen },
 ];
 
 const candidateNavItems = [

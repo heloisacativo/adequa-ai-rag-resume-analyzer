@@ -7,6 +7,8 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { resumeService } from '../lib/api';
 import { useToast } from '../hooks/use-toats';
+import { useResumes } from '../hooks/useResumes';
+import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
 
 const MAX_FILES_PER_UPLOAD = 20;
@@ -42,35 +44,26 @@ const statusLabels: Record<string, string> = {
 export default function ResumesList() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [resumes, setResumes] = useState<DatabaseResume[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ resumeId: string; fileName: string } | null>(null);
   const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { resumes: resumesFromApi, isLoading: loading, error: resumesError, refetch, invalidate } = useResumes(user?.id);
+  const resumes: DatabaseResume[] = (Array.isArray(resumesFromApi) ? resumesFromApi : []).map((r) => ({
+    resume_id: r.resume_id,
+    candidate_name: r.candidate_name,
+    file_name: r.file_name,
+    uploaded_at: r.uploaded_at,
+    is_indexed: r.is_indexed,
+  }));
 
   useEffect(() => {
     setMounted(true);
     return () => setMounted(false);
   }, []);
-
-  useEffect(() => {
-    loadResumes();
-  }, []);
-
-  const loadResumes = async () => {
-    setLoading(true);
-    try {
-      const response = await resumeService.listResumes();
-      setResumes(response.resumes);
-    } catch (error) {
-      console.error('Erro ao carregar currículos:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -95,10 +88,15 @@ export default function ResumesList() {
       await resumeService.uploadResumes(selectedFiles);
       setSelectedFiles([]);
       setShowUpload(false);
-      loadResumes();
+      invalidate();
+      await refetch();
     } catch (error) {
       console.error('Erro ao fazer upload:', error);
-      alert('Erro ao fazer upload dos currículos');
+      const message = error instanceof Error ? error.message : 'Erro ao fazer upload dos currículos';
+      toast({ title: 'Erro no upload', description: message, variant: 'error' });
+      // Atualiza a lista mesmo quando dá erro (ex.: duplicado), para mostrar o que está no banco
+      invalidate();
+      await refetch();
     } finally {
       setIsUploading(false);
     }
@@ -141,7 +139,8 @@ export default function ResumesList() {
     if (!deleteModal) return;
     try {
       await resumeService.deleteResume(deleteModal.resumeId);
-      setResumes(resumes.filter(r => r.resume_id !== deleteModal.resumeId));
+      invalidate();
+      await refetch();
       closeDeleteModal();
       toast({
         title: 'Currículo excluído',
@@ -168,6 +167,13 @@ export default function ResumesList() {
 
     return matchesSearch && matchesStatus;
   });
+
+  const showLoginMessage = !user?.id;
+  const showErrorState = !!resumesError && !loading;
+  const showEmptyState = !loading && !resumesError && filteredResumes.length === 0;
+  const emptyMessage = resumes.length > 0 && filteredResumes.length === 0
+    ? 'Nenhum currículo corresponde aos filtros'
+    : 'Nenhum currículo encontrado';
 
   return (
     <AppLayout>
@@ -251,7 +257,7 @@ export default function ResumesList() {
                     type="button"
                     onClick={handleUpload}
                     disabled={isUploading}
-                    className="w-full sm:flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-black text-white font-bold uppercase border-2 border-black rounded hover:bg-gray-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)] active:translate-y-[2px] active:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                    className="w-full sm:flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-neo-secondary cursor-pointer text-black font-bold uppercase border-2 border-black rounded hover:bg-gray-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)] active:translate-y-[2px] active:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                   >
                     {isUploading ? 'Enviando...' : 'Confirmar Upload'}
                   </button>
@@ -291,15 +297,27 @@ export default function ResumesList() {
 
         {/* LISTA EM CARDS (mobile) */}
         <div className="md:hidden space-y-3">
-          {loading ? (
+          {showLoginMessage ? (
+            <div className="bg-white border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-8 text-center bg-gray-50">
+              <FileText className="w-10 h-10 sm:w-12 sm:h-12 mb-3 text-neo-primary mx-auto" strokeWidth={1.5} />
+              <p className="text-base sm:text-lg font-black text-black uppercase">Faça login para ver seus currículos</p>
+            </div>
+          ) : loading ? (
             <div className="bg-white border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-8 flex flex-col items-center justify-center">
               <span className="loading loading-spinner loading-lg mb-2 bg-black"></span>
               <p className="font-bold text-black text-sm">CARREGANDO...</p>
             </div>
-          ) : filteredResumes.length === 0 ? (
+          ) : showErrorState ? (
+            <div className="bg-white border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-8 text-center bg-red-50/50">
+              <FileText className="w-10 h-10 sm:w-12 sm:h-12 mb-3 text-neo-primary mx-auto" strokeWidth={1.5} />
+              <p className="text-base sm:text-lg font-black text-black uppercase mb-3">Falha ao carregar currículos</p>
+              <p className="text-sm text-gray-600 mb-4">Faça login ou tente novamente.</p>
+              <button type="button" onClick={() => refetch()} className="px-4 py-2 bg-black text-white font-bold uppercase text-sm rounded border-2 border-black hover:bg-gray-800">Tentar novamente</button>
+            </div>
+          ) : showEmptyState ? (
             <div className="bg-white border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-8 text-center bg-gray-50">
               <FileText className="w-10 h-10 sm:w-12 sm:h-12 mb-3 text-neo-primary mx-auto" strokeWidth={1.5} />
-              <p className="text-base sm:text-lg font-black text-black uppercase">Nenhum currículo encontrado</p>
+              <p className="text-base sm:text-lg font-black text-black uppercase">{emptyMessage}</p>
             </div>
           ) : (
             filteredResumes.map((resume) => {
@@ -369,7 +387,16 @@ export default function ResumesList() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-black/10">
-                {loading ? (
+                {showLoginMessage ? (
+                  <tr>
+                    <td colSpan={5} className="p-12 md:p-16 text-center bg-gray-50">
+                      <div className="flex flex-col items-center justify-center text-gray-600">
+                        <FileText className="w-12 h-12 mb-4 text-neo-primary" strokeWidth={1.5} />
+                        <p className="text-lg md:text-xl font-black text-black uppercase">Faça login para ver seus currículos</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : loading ? (
                   <tr>
                     <td colSpan={5} className="p-8 md:p-12 text-center">
                       <div className="flex flex-col items-center justify-center text-gray-400">
@@ -378,12 +405,23 @@ export default function ResumesList() {
                       </div>
                     </td>
                   </tr>
-                ) : filteredResumes.length === 0 ? (
+                ) : showErrorState ? (
+                  <tr>
+                    <td colSpan={5} className="p-12 md:p-16 text-center bg-red-50/50">
+                      <div className="flex flex-col items-center justify-center text-gray-600">
+                        <FileText className="w-12 h-12 mb-4 text-neo-primary" strokeWidth={1.5} />
+                        <p className="text-lg md:text-xl font-black text-black uppercase mb-2">Falha ao carregar currículos</p>
+                        <p className="text-sm text-gray-600 mb-4">Faça login ou tente novamente.</p>
+                        <button type="button" onClick={() => refetch()} className="px-4 py-2 bg-black text-white font-bold uppercase text-sm rounded border-2 border-black hover:bg-gray-800">Tentar novamente</button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : showEmptyState ? (
                   <tr>
                     <td colSpan={5} className="p-12 md:p-16 text-center bg-gray-50">
                       <div className="flex flex-col items-center justify-center text-gray-400 opacity-70">
                         <FileText className="w-12 h-12 mb-4 text-neo-primary" strokeWidth={1.5} />
-                        <p className="text-lg md:text-xl font-black text-black uppercase">Nenhum currículo encontrado</p>
+                        <p className="text-lg md:text-xl font-black text-black uppercase">{emptyMessage}</p>
                       </div>
                     </td>
                   </tr>

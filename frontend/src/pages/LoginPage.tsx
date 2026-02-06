@@ -81,15 +81,7 @@ export default function LoginPage() {
       )}
 
       <div className="w-full max-w-lg animate-fade-in relative z-10 min-w-0 p-8">
-        {/* Logo */}
-        <div className="flex flex-col items-center justify-center">
-          <div className="w-44 h-14 min-[360px]:w-52 min-[360px]:h-16 sm:w-60 sm:h-20 flex items-center justify-center shrink-0">
-            <img src={adequa} alt="Adequa Logo" className="w-full h-full object-contain" />
-          </div>
-          <p className="-mt-2 text-xs text-neutral-500 font-medium mb-2 min-[360px]:-mt-3 min-[360px]:text-sm sm:-mt-4.5 sm:mb-3">
-            Sistema de Gestão de RH
-          </p>
-        </div>
+    
 
         <div className="bg-neo-primary border-thickest border-neo-secondary shadow-neo-xl min-w-0">
           <form
@@ -101,10 +93,21 @@ export default function LoginPage() {
               'lg:pt-12 lg:pr-12 lg:pb-12 lg:pl-12',
             ].join(' ')}
           >
-            <h2 className="text-xl min-[360px]:text-2xl font-black text-left mb-2 text-neo-secondary">ENTRAR</h2>
-
+             <div className="flex flex-col items-center justify- mt-[-2rem]">
+          <div className="w-44 h-12 min-[360px]:w-52 min-[360px]:h- sm:w-60 sm:h-20 flex items-center justify-center shrink-0">
+            <img src={adequa} alt="Adequa Logo" className="w-full h-full object-contain" />
+          </div>
+          <p className="-mt-1 text-xs text-neutral-500 font-medium mb-2 min-[360px]:-mt-2 min-[360px]:text-sm sm:-mt-4.5 sm:mb-3 text-center max-w-md mx-auto">
+            Sistema de IA aplicado à avaliação de perfis profissionais
+          </p>
+        </div>
+            <h2 className="text-xl min-[360px]:text-2xl font-black/30 text-left text-neo-secondary">ENTRAR</h2>
+            <p className="text-sm min-[360px]:text-base text-neo-secondary/60 text-left mb-2">
+            <span className="label-text text-sm min-[360px]:text-base font-black/30 text-neo-secondary break-words">Entre na sua conta de recrutador ou candidato</span>
+            </p>
             <div className="space-y-4 min-[360px]:space-y-5 sm:space-y-6">
               <div className="form-control">
+                
                 <div className="flex flex-col">
                   <label htmlFor="email" className="label py-0.5">
                     <span className="label-text text-sm min-[360px]:text-base text-neo-secondary mb-0.5">EMAIL</span>

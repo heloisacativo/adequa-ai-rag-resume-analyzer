@@ -42,10 +42,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const data = await response.json();
+      const userData = data.user;
+      const userId = userData?.user_id ?? userData?.id;
+      if (userId) localStorage.setItem("user_id", String(userId));
       localStorage.setItem("token", data.access_token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      setUser(data.user);
-      return data.user;
+      localStorage.setItem("user", JSON.stringify({ ...userData, id: userId ?? userData?.id }));
+      setUser({ ...userData, id: userId ?? userData?.id } as User);
+      return { ...userData, id: userId ?? userData?.id } as User;
     } finally {
       setIsLoading(false);
     }
@@ -73,9 +76,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const result = await response.json();
+      const userData = result.user;
+      const userId = userData?.user_id ?? userData?.id;
+      if (userId) localStorage.setItem("user_id", String(userId));
       localStorage.setItem("token", result.access_token);
-      localStorage.setItem("user", JSON.stringify(result.user));
-      setUser(result.user);
+      localStorage.setItem("user", JSON.stringify({ ...userData, id: userId ?? userData?.id }));
+      setUser({ ...userData, id: userId ?? userData?.id } as User);
     } finally {
       setIsLoading(false);
     }
@@ -85,6 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("user_id");
   }, []);
 
   return React.createElement(

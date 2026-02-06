@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { resumeService, jobService, chatService } from "../lib/api";
+import { resumeService, jobService, chatService, API_URL } from "../lib/api";
 import { useSavedIndexes } from "../hooks/useSavedIndexes";
-import { FileText, Briefcase, Send, Bot, User, Loader2, MessageSquare, CheckCircle2, Plus, History } from "lucide-react";
+import { useChatSessions } from "../hooks/useChatSessions";
+import { useAuth } from "../contexts/AuthContext";
+import { FileText, Briefcase, Send, Bot, User, Loader2, MessageSquare, CheckCircle2, Plus, History, Trash2, Pencil } from "lucide-react";
 import { cn } from "../lib/utils";
 
 interface Message {
@@ -16,7 +18,7 @@ interface ChatSession {
   created_at: string;
 }
 
-export default function HistoryChat({ indexId: initialIndexId }: { indexId?: string }) {
+export default function HistoryChat({ indexId: initialIndexId, openSessionId }: { indexId?: string; openSessionId?: string }) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
@@ -28,13 +30,17 @@ export default function HistoryChat({ indexId: initialIndexId }: { indexId?: str
   const [jobs, setJobs] = useState<any[]>([]);
   const [jobsLoading, setJobsLoading] = useState(false);
   
-  // Estados para chat history
-  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+  const { user } = useAuth();
+  const userId = user?.id ?? "";
+  // Chat history com cache (React Query) – evita várias chamadas à API
+  const { sessions: chatSessions, isLoading: chatLoading, invalidate: invalidateChatSessions, refetch: refetchChatSessions } = useChatSessions(user?.id);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [chatLoading, setChatLoading] = useState(false);
-  
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
+  const [sessionToDelete, setSessionToDelete] = useState<ChatSession | null>(null);
   const { savedIndexes, loading: indexesLoading } = useSavedIndexes();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const jobSelectionInProgress = useRef(false);
 
   // Auto-scroll
   useEffect(() => {
@@ -46,17 +52,16 @@ export default function HistoryChat({ indexId: initialIndexId }: { indexId?: str
     loadJobs();
   }, []); // Carrega uma vez no mount para garantir
 
-  // Carregar chat sessions
+  // Carregar sessão atual do backend após carregar sessões (ou abrir a sessão vinda do histórico)
   useEffect(() => {
-    loadChatSessions();
-  }, []);
-
-  // Carregar sessão atual do backend após carregar sessões
-  useEffect(() => {
-    if (chatSessions.length > 0) {
-      loadCurrentSession();
+    if (chatSessions.length === 0) return;
+    if (openSessionId) {
+      const session = chatSessions.find((s) => s.session_id === openSessionId);
+      if (session) selectChatSession(session);
+      return;
     }
-  }, [chatSessions]);
+    loadCurrentSession();
+  }, [chatSessions, openSessionId]);
 
   // Salvar sessão atual no backend
   useEffect(() => {
@@ -64,9 +69,11 @@ export default function HistoryChat({ indexId: initialIndexId }: { indexId?: str
   }, [currentSessionId]);
 
   const loadCurrentSession = async () => {
+    if (!userId) return;
     try {
-      const userId = localStorage.getItem('user_id') || 'fake_user';
-      const response = await fetch(`/api/v1/users/current-session?user_id=${userId}`);
+      const response = await fetch(`${API_URL}/api/v1/users/current-session?user_id=${userId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+      });
       if (response.ok) {
         const data = await response.json();
         if (data.current_session_id && chatSessions.length > 0) {
@@ -82,15 +89,18 @@ export default function HistoryChat({ indexId: initialIndexId }: { indexId?: str
   };
 
   const saveCurrentSession = async () => {
+    if (!userId) return;
     try {
-      const userId = localStorage.getItem('user_id') || 'fake_user';
+      const headers = { Authorization: `Bearer ${localStorage.getItem("token") || ""}` };
       if (currentSessionId) {
-        await fetch(`/api/v1/users/current-session?user_id=${userId}&session_id=${currentSessionId}`, {
-          method: 'PUT',
+        await fetch(`${API_URL}/api/v1/users/current-session?user_id=${userId}&session_id=${currentSessionId}`, {
+          method: "PUT",
+          headers,
         });
       } else {
-        await fetch(`/api/v1/users/current-session?user_id=${userId}`, {
-          method: 'DELETE',
+        await fetch(`${API_URL}/api/v1/users/current-session?user_id=${userId}`, {
+          method: "DELETE",
+          headers,
         });
       }
     } catch (error) {
@@ -111,36 +121,45 @@ export default function HistoryChat({ indexId: initialIndexId }: { indexId?: str
     }
   };
 
-  const loadChatSessions = async () => {
-    setChatLoading(true);
-    try {
-      const userId = localStorage.getItem('user_id') || 'fake_user';
-      const sessions = await chatService.getUserSessions(userId);
-      setChatSessions(sessions);
-    } catch (error) {
-      console.error("Erro ao carregar sessões de chat:", error);
-      setChatSessions([]);
-    } finally {
-      setChatLoading(false);
-    }
-  };
-
   const handleJobSelection = async () => {
     if (!selectedJobId) return;
-
+    if (!userId) {
+      alert("Faça login para salvar chats vinculados à sua conta.");
+      return;
+    }
+    if (jobSelectionInProgress.current) return;
+    jobSelectionInProgress.current = true;
     setLoading(true);
+
     try {
       const selectedJob = jobs.find(job => job.id === selectedJobId);
       if (!selectedJob) return;
 
-      // Create chat session first
-      const userId = localStorage.getItem('user_id') || 'fake_user';
-      const session = await chatService.createSession({
-        user_id: userId,
-        title: `Análise de Vaga: ${selectedJob.title}`,
-      });
-      setCurrentSessionId(session.session_id);
-      setChatSessions((prev) => [session, ...prev]);
+      const title = `Análise de Vaga: ${selectedJob.title}`;
+      // Reutiliza sessão atual OU a passada pela página Analysis (openSessionId), para não criar dois chats
+      const existingSessionId = currentSessionId || openSessionId || null;
+      let sessionIdToUse: string;
+
+      if (existingSessionId) {
+        sessionIdToUse = existingSessionId;
+        if (!currentSessionId) setCurrentSessionId(existingSessionId);
+        try {
+          await chatService.updateSessionTitle(existingSessionId, userId, title);
+          invalidateChatSessions();
+          await refetchChatSessions();
+        } catch (_) {
+          // ignora falha ao atualizar título
+        }
+      } else {
+        const session = await chatService.createSession({
+          user_id: userId,
+          title,
+        });
+        sessionIdToUse = session.session_id;
+        setCurrentSessionId(sessionIdToUse);
+        invalidateChatSessions();
+        await refetchChatSessions();
+      }
 
       // Feedback visual
       setMessages((prev) => [...prev, { 
@@ -158,8 +177,7 @@ export default function HistoryChat({ indexId: initialIndexId }: { indexId?: str
             text: `📊 **Análise Automática**\n\n${data.response}`
           }]);
 
-          // Save messages to backend
-          await saveMessagesToBackend(autoQuery, data.response);
+          await saveMessagesToBackend(autoQuery, data.response, sessionIdToUse);
         } catch (error) {
           setMessages((prev) => [...prev, {
             sender: "Sistema",
@@ -171,6 +189,7 @@ export default function HistoryChat({ indexId: initialIndexId }: { indexId?: str
       console.error(error);
     } finally {
       setLoading(false);
+      jobSelectionInProgress.current = false;
     }
   };
   
@@ -213,19 +232,24 @@ export default function HistoryChat({ indexId: initialIndexId }: { indexId?: str
     }
   };
 
-  const saveMessagesToBackend = async (userMessage: string, assistantMessage: string) => {
+  const saveMessagesToBackend = async (
+    userMessage: string,
+    assistantMessage: string,
+    sessionIdOverride?: string
+  ) => {
+    if (!userId) return; // Chats são salvos no banco apenas para usuário autenticado
     try {
-      let sessionId = currentSessionId;
+      let sessionId = sessionIdOverride ?? currentSessionId;
       if (!sessionId) {
-        // Create new session
-        const userId = localStorage.getItem('user_id') || 'fake_user';
+        // Create new session (vinculado ao usuário autenticado)
         const session = await chatService.createSession({
           user_id: userId,
           title: userMessage.slice(0, 50) + (userMessage.length > 50 ? '...' : ''),
         });
         sessionId = session.session_id;
         setCurrentSessionId(sessionId);
-        setChatSessions((prev) => [session, ...prev]);
+        invalidateChatSessions();
+        await refetchChatSessions();
       }
 
       // Add messages
@@ -237,18 +261,60 @@ export default function HistoryChat({ indexId: initialIndexId }: { indexId?: str
   };
 
   const createNewChat = async () => {
+    if (!userId) return;
     try {
-      const userId = localStorage.getItem('user_id') || 'fake_user';
       const session = await chatService.createSession({
         user_id: userId,
         title: `Novo Chat ${new Date().toLocaleString()}`,
       });
       setCurrentSessionId(session.session_id);
-      setChatSessions((prev) => [session, ...prev]);
+      invalidateChatSessions();
+      await refetchChatSessions();
       setMessages([]);
       setInput("");
     } catch (error) {
       console.error("Erro ao criar novo chat:", error);
+    }
+  };
+
+  const confirmDeleteSession = (e: React.MouseEvent, session: ChatSession) => {
+    e.stopPropagation();
+    setSessionToDelete(session);
+  };
+
+  const handleDeleteSession = async (sessionId: string) => {
+    if (!userId) return;
+    try {
+      await chatService.deleteSession(sessionId, userId);
+      invalidateChatSessions();
+      await refetchChatSessions();
+      if (currentSessionId === sessionId) {
+        setCurrentSessionId(null);
+        setMessages([]);
+      }
+      setSessionToDelete(null);
+    } catch (err) {
+      console.error("Erro ao excluir conversa:", err);
+    }
+  };
+
+  const startEditingTitle = (e: React.MouseEvent, session: ChatSession) => {
+    e.stopPropagation();
+    setEditingSessionId(session.session_id);
+    setEditingTitle(session.title);
+  };
+
+  const saveSessionTitle = async (sessionId: string) => {
+    const title = editingTitle.trim() || "Sem título";
+    if (!userId) return;
+    setEditingSessionId(null);
+    try {
+      await chatService.updateSessionTitle(sessionId, userId, title);
+      invalidateChatSessions();
+      await refetchChatSessions();
+    } catch (err) {
+      console.error("Erro ao alterar título:", err);
+      setEditingSessionId(sessionId);
     }
   };
 
@@ -276,19 +342,64 @@ export default function HistoryChat({ indexId: initialIndexId }: { indexId?: str
   return (
     <div className="flex h-[750px] w-full bg-white border border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden font-sans">
       
+      {/* Modal confirmar exclusão */}
+      {sessionToDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setSessionToDelete(null)}
+        >
+          <div
+            className="bg-white border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 max-w-sm w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-sm font-bold uppercase tracking-wide mb-1">Excluir conversa</p>
+            <p className="text-sm text-gray-600 mb-4">
+              Tem certeza que deseja excluir &quot;{sessionToDelete.title}&quot;? Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setSessionToDelete(null)}
+                className="px-4 py-2 border border-black font-bold uppercase text-xs bg-white hover:bg-gray-100 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDeleteSession(sessionToDelete.session_id)}
+                className="px-4 py-2 bg-red-600 text-white border border-black font-bold uppercase text-xs hover:bg-red-700 transition-colors"
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* SIDEBAR */}
       <div className="w-80 bg-gray-50 border-r border-black flex flex-col">
-        <div className="p-4 border-b border-black">
+        <div className="p-4 border-b border-black space-y-2">
           <button
             onClick={createNewChat}
-            className="w-full bg-black text-white px-4 py-2 border border-black font-black uppercase text-sm hover:bg-gray-800 flex items-center gap-2"
+            disabled={!userId}
+            className="w-full bg-black text-white px-4 py-2 border border-black font-black uppercase text-sm hover:bg-gray-800 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="w-4 h-4" />
             Novo Chat
           </button>
+          {userId && (
+            <p className="text-[10px] text-gray-500 text-center leading-tight">
+              Máx. 10 conversas. A mais antiga é excluída ao passar do limite.
+            </p>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          {chatLoading ? (
+          {!userId ? (
+            <div className="text-sm text-gray-500 text-center py-8">
+              <History className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              Faça login para ver e salvar seus chats no banco de dados.
+            </div>
+          ) : chatLoading ? (
             <div className="flex items-center gap-2 text-sm"><Loader2 className="w-4 h-4 animate-spin"/> Carregando chats...</div>
           ) : chatSessions.length === 0 ? (
             <div className="text-sm text-gray-500 text-center py-8">
@@ -297,19 +408,67 @@ export default function HistoryChat({ indexId: initialIndexId }: { indexId?: str
             </div>
           ) : (
             chatSessions.map((session) => (
-              <button
+              <div
                 key={session.session_id}
-                onClick={() => selectChatSession(session)}
                 className={cn(
-                  "w-full text-left p-3 border border-gray-300 hover:border-black transition-all text-sm",
+                  "group flex items-center gap-1 w-full text-left p-3 border border-gray-300 hover:border-black transition-all text-sm",
                   currentSessionId === session.session_id ? "bg-black text-white border-black" : "bg-white text-gray-700"
                 )}
               >
-                <div className="font-bold truncate">{session.title}</div>
-                <div className="text-xs opacity-70">
-                  {new Date(session.created_at).toLocaleDateString()}
-                </div>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => selectChatSession(session)}
+                  className="flex-1 min-w-0 text-left"
+                >
+                  {editingSessionId === session.session_id ? (
+                    <input
+                      type="text"
+                      value={editingTitle}
+                      onChange={(e) => setEditingTitle(e.target.value)}
+                      onBlur={() => saveSessionTitle(session.session_id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") saveSessionTitle(session.session_id);
+                        if (e.key === "Escape") {
+                          setEditingSessionId(null);
+                          setEditingTitle("");
+                        }
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full font-bold text-sm px-1 py-0.5 border border-black bg-white text-black focus:outline-none"
+                      autoFocus
+                    />
+                  ) : (
+                    <div className="font-bold truncate">{session.title}</div>
+                  )}
+                  <div className="text-xs opacity-70">
+                    {new Date(session.created_at).toLocaleDateString()}
+                  </div>
+                </button>
+                {editingSessionId !== session.session_id && (
+                  <button
+                    type="button"
+                    onClick={(e) => startEditingTitle(e, session)}
+                    title="Editar título"
+                    className={cn(
+                      "p-1.5 rounded shrink-0 opacity-70 hover:opacity-100 transition-opacity",
+                      currentSessionId === session.session_id ? "hover:bg-white/20 text-white" : "hover:bg-gray-100 text-gray-600"
+                    )}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={(e) => confirmDeleteSession(e, session)}
+                  title="Excluir conversa"
+                  className={cn(
+                    "p-1.5 rounded shrink-0 opacity-70 hover:opacity-100 transition-opacity",
+                    currentSessionId === session.session_id ? "hover:bg-white/20 text-white" : "hover:bg-red-100 text-red-600"
+                  )}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
             ))
           )}
         </div>
@@ -325,8 +484,8 @@ export default function HistoryChat({ indexId: initialIndexId }: { indexId?: str
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
           <label className="text-xs font-black uppercase tracking-wide min-w-[120px] flex items-center gap-2">
             <div className="w-2 h-2 bg-black rounded-full"></div>
-            Base de Dados:
-          </label>
+           Base de Dados:
+           </label>
           <div className="flex-1 w-full relative">
             {indexesLoading ? (
               <span className="text-xs font-medium text-gray-500">Carregando índices...</span>
@@ -438,7 +597,7 @@ export default function HistoryChat({ indexId: initialIndexId }: { indexId?: str
             <button
               onClick={handleJobSelection}
               disabled={loading || !selectedJobId}
-              className="bg-black text-white px-4 py-2 border border-black font-black uppercase text-xs hover:bg-gray-800 disabled:opacity-50 h-[38px]"
+              className="cursor-pointer bg-black text-white px-4 py-2 border border-black font-black uppercase text-xs hover:bg-gray-800 disabled:opacity-50 h-[38px]"
             >
               Confirmar
             </button>

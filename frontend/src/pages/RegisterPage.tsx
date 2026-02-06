@@ -111,21 +111,21 @@ export default function RegisterPage() {
     <div className="min-h-screen min-h-dvh bg-neo-primary flex items-center justify-center p-2 min-[360px]:p-3 sm:p-4 page-padding relative overflow-hidden">
 
       <div className="w-full max-w-lg animate-fade-in relative z-10 min-w-0 px-0.5">
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-2 min-[360px]:gap-4 relative">
-          <div className="w-32 h-12 min-[360px]:w-40 min-[360px]:h-16 flex items-center justify-center shrink-0">
-            <img src={adequa} alt="Adequa Logo" className="w-full h-full object-contain" />
-          </div>
-          {/* Decorative elements around logo */}
-        </div>
-
         <div className="bg-neo-primary border-thin border-neo-secondary shadow-neo-xl min-w-0">
           <form onSubmit={handleSubmit} className="p-3 min-[360px]:p-4 sm:p-6 relative z-10 flex justify-center flex-col cursor-pointer">
-            <h2 className="text-xl min-[360px]:text-2xl font-black text-center mb-2 text-neo-secondary">CRIAR CONTA</h2>
+          <div className="flex flex-col items-center justify- mt-[-1rem]">
+          <div className="w-44 h-12 min-[360px]:w-52 min-[360px]:h- sm:w-60 sm:h-20 flex items-center justify-center shrink-0">
+            <img src={adequa} alt="Adequa Logo" className="w-full h-full object-contain" />
+          </div>
+          <p className="-mt-1 text-xs text-neutral-500 font-medium mb-2 min-[360px]:-mt-2 min-[360px]:text-sm sm:-mt-4.5 sm:mb-3 text-center max-w-md mx-auto">
+            Sistema de IA aplicado à avaliação de perfis profissionais
+          </p>
+        </div>
+            <h2 className="text-xl min-[360px]:text-2xl font-black/50 text-neo-secondary mt-3">CRIAR CONTA</h2>
             {/* User Type Selection */}
             <div className="mb-3 min-[360px]:mb-4 relative">
               <label className="label mb-2 min-[360px]:mb-4 py-0">
-                <span className="label-text text-sm min-[360px]:text-base font-black text-neo-secondary break-words">Escolha uma opção para se cadastrar</span>
+                <span className="label-text text-sm min-[360px]:text-base font-black/30 text-neo-secondary break-words">Escolha uma opção para se cadastrar</span>
               </label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 min-[360px]:gap-4 justify-center items-center w-full max-w-2xl mx-auto">
                 
