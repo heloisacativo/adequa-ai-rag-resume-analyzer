@@ -97,11 +97,11 @@ export default function LoginPage() {
           <div className="w-44 h-12 min-[360px]:w-52 min-[360px]:h- sm:w-60 sm:h-20 flex items-center justify-center shrink-0">
             <img src={adequa} alt="Adequa Logo" className="w-full h-full object-contain" />
           </div>
-          <p className="-mt-1 text-xs text-neutral-500 font-medium mb-2 min-[360px]:-mt-2 min-[360px]:text-sm sm:-mt-4.5 sm:mb-3 text-center max-w-md mx-auto">
+            <p className="-mt-1 text-xs text-neutral-500 font-medium mb-2 min-[360px]:-mt-2 min-[360px]:text-sm sm:-mt-4.5 sm:mb-3 text-center max-w-md mx-auto whitespace-nowrap">
             Sistema de IA aplicado à avaliação de perfis profissionais
-          </p>
+            </p>
         </div>
-            <h2 className="text-xl min-[360px]:text-2xl font-black/30 text-left text-neo-secondary">ENTRAR</h2>
+            <h2 className="text-xl min-[360px]:text-2xl font-black/30 text-left text-neo-secondary font-medium">ENTRAR</h2>
             <p className="text-sm min-[360px]:text-base text-neo-secondary/60 text-left mb-2">
             <span className="label-text text-sm min-[360px]:text-base font-black/30 text-neo-secondary break-words">Entre na sua conta de recrutador ou candidato</span>
             </p>
