@@ -10,12 +10,16 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from application.interfaces.users.repositories import UserRepositoryProtocol
+from application.interfaces.users.email_verification_repository import EmailVerificationRepositoryProtocol
+from application.interfaces.email.email_service import EmailServiceProtocol
 from application.interfaces.jobs.repositories import JobRepositoryProtocol
 from application.interfaces.chat.repositories import ChatRepositoryProtocol
 from application.interfaces.security import PasswordHasherProtocol, TokenGeneratorProtocol
 from application.interfaces.users.uow import UnitOfWorkProtocol
 from application.mappers.users.user_mapper import UserMapper
 from application.use_cases.users.register_user import RegisterUserUseCase
+from application.use_cases.users.request_email_verification import RequestEmailVerificationUseCase
+from application.use_cases.users.verify_email_code import VerifyEmailCodeUseCase
 from application.use_cases.login_user import LoginUserUseCase
 from application.use_cases.jobs.job import (
     CreateJobUseCase,
@@ -32,6 +36,8 @@ from config.base import Settings  # sua classe de configuração
 
 from infrastructures.cache.redis_client import RedisCacheClient
 from infrastructures.db.mappers.users.user_db_mapper import UserDBMapper
+from infrastructures.repositories.email_verification_repository import InMemoryEmailVerificationRepository
+from infrastructures.http.smtp_email_service import SMTPEmailService
 from infrastructures.db.mappers.jobs.job_db_mapper import JobDBMapper
 from infrastructures.db.repositories.users.user import UserRepositorySQLAlchemy
 from infrastructures.db.repositories.jobs.job import JobRepositorySQLAlchemy
@@ -201,6 +207,20 @@ class RepositoryProvider(Provider):
         if chat_session_factory is not None:
             return ChatRepositorySupabase(session_factory=chat_session_factory)
         return ChatRepositorySqlAlchemy(session=session)
+    
+    @provide(scope=Scope.APP)
+    def get_email_verification_repository(self) -> EmailVerificationRepositoryProtocol:
+        """
+        Provides an EmailVerificationRepositoryProtocol implementation (in-memory for now).
+        """
+        return InMemoryEmailVerificationRepository()
+    
+    @provide(scope=Scope.APP)
+    def get_email_service(self, settings: Settings) -> EmailServiceProtocol:
+        """
+        Provides an EmailServiceProtocol implementation (SMTP via Brevo).
+        """
+        return SMTPEmailService(settings=settings.external_apis)
 
 
 class UnitOfWorkProvider(Provider):
@@ -322,6 +342,32 @@ class UseCaseProvider(Provider):
             token_generator=token_generator,
             mapper=mapper,
             auth_service=auth_service,
+        )
+    
+    @provide(scope=Scope.REQUEST)
+    def get_request_email_verification_use_case(
+        self,
+        email_verification_repo: EmailVerificationRepositoryProtocol,
+        email_service: EmailServiceProtocol,
+    ) -> RequestEmailVerificationUseCase:
+        """
+        Provides a RequestEmailVerificationUseCase instance.
+        """
+        return RequestEmailVerificationUseCase(
+            email_verification_repo=email_verification_repo,
+            email_service=email_service,
+        )
+    
+    @provide(scope=Scope.REQUEST)
+    def get_verify_email_code_use_case(
+        self,
+        email_verification_repo: EmailVerificationRepositoryProtocol,
+    ) -> VerifyEmailCodeUseCase:
+        """
+        Provides a VerifyEmailCodeUseCase instance.
+        """
+        return VerifyEmailCodeUseCase(
+            email_verification_repo=email_verification_repo,
         )
 
 
