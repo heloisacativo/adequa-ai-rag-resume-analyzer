@@ -11,6 +11,7 @@
   --color-neo-primary: #fcfbfe;
   --color-neo-accent: #E3A018;
   --color-neo-secondary: #000000;
+  --color-neo-blue: #dfe6e8;
   /* Layout */
   --length-sidebar: 14rem;
   --length-header: 5rem;
@@ -56,7 +57,7 @@ html {
 
 /* ========== CORES NEO (projeto) ========== */
 .text-neo-primary {
-  color: #E3A018;
+  color: #eae9f5
 }
 
 .bg-neo-primary {
@@ -64,7 +65,7 @@ html {
 }
 
 .border-neo-primary {
-  border-color: #E3A018;
+  border-color: var(--color-neo-blue);
 }
 
 .text-neo-secondary {
@@ -72,7 +73,7 @@ html {
 }
 
 .bg-neo-secondary {
-  background-color: #E3A018;
+  background-color: var(--color-neo-blue);
 }
 
 .border-neo-secondary {
@@ -80,15 +81,15 @@ html {
 }
 
 .hover\:text-neo-primary:hover {
-  color: #E3A018;
+  color: var(--color-neo-blue);
 }
 
 .hover\:bg-neo-primary:hover {
-  background-color: #E3A018 !important;
+  background-color: var(--color-neo-blue) !important;
 }
 
 .hover\:border-neo-primary:hover {
-  border-color: #E3A018;
+  border-color: var(--color-neo-blue);
 }
 
 .hover\:text-neo-secondary:hover {
@@ -104,15 +105,15 @@ html {
 }
 
 .focus\:text-neo-primary:focus {
-  color: #E3A018;
+  color: var(--color-neo-blue);
 }
 
 .focus\:bg-neo-primary:focus {
-  background-color: #E3A018;
+  background-color: var(--color-neo-blue);
 }
 
 .focus\:border-neo-primary:focus {
-  border-color: #E3A018;
+  border-color: var(--color-neo-blue);
 }
 
 .focus\:text-neo-secondary:focus {
@@ -128,8 +129,8 @@ html {
 }
 
 .radio-primary-neo {
-  border-color: #E3A018;
-  background-color: #E3A018;
+  border-color: var(--color-neo-blue);
+  background-color: var(--color-neo-blue);
 }
 
 /* Dropdown do usuário no header: abre logo abaixo do trigger (ignora position-area do DaisyUI) */
@@ -348,12 +349,12 @@ html {
 
 /* ========== AUTOFILL ========== */
 input:-webkit-autofill {
-  -webkit-box-shadow: 0 0 0px 1000px bg-neo-primary inset;
+  -webkit-box-shadow: 0 0 0px 1000px var(--color-neo-blue) inset;
   -webkit-text-fill-color: #000000;
   transition: background-color 5000s ease-in-out 0s;
 }
 
 input:-moz-autofill {
-  background-color: #E3A018 !important;
+  background-color: #dfe6e8 !important;
   color: #000000 !important;
 }
