@@ -1,9 +1,9 @@
 import type React from "react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { resumeService } from "../lib/api";
 import { useSavedIndexes } from "../hooks/useSavedIndexes";
 import { useToast } from "../hooks/use-toats";
-import { Upload, FileUp } from "lucide-react"; // Adicionei ícones para polimento visual (opcional)
+import { Upload, FileUp, AlertCircle } from "lucide-react"; // Adicionei ícones para polimento visual (opcional)
 
 interface FileInputProps {
   label?: string;
@@ -16,6 +16,22 @@ const FileInput = ({ label, setIndexId, onSuccess }: FileInputProps) => {
   const [uploading, setUploading] = useState(false);
   const { loadIndexes } = useSavedIndexes();
   const { toast } = useToast();
+
+  // Validar se todos os arquivos são PDFs
+  const fileValidation = useMemo(() => {
+    if (!files) return { isValid: true, pdfCount: 0, nonPdfCount: 0, nonPdfFiles: [] as string[] };
+    
+    const filesArray = Array.from(files);
+    const pdfFiles = filesArray.filter(file => file.type === 'application/pdf');
+    const nonPdfFiles = filesArray.filter(file => file.type !== 'application/pdf');
+    
+    return {
+      isValid: nonPdfFiles.length === 0,
+      pdfCount: pdfFiles.length,
+      nonPdfCount: nonPdfFiles.length,
+      nonPdfFiles: nonPdfFiles.map(f => f.name)
+    };
+  }, [files]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = event.target.files;
@@ -125,7 +141,7 @@ const FileInput = ({ label, setIndexId, onSuccess }: FileInputProps) => {
         {/* BOTÃO DE ENVIO */}
         <button
           onClick={handleUpload}
-          disabled={!files || uploading}
+          disabled={!files || uploading || !fileValidation.isValid}
           className="
             flex items-center justify-center gap-2
             px-6 py-3
@@ -158,10 +174,29 @@ const FileInput = ({ label, setIndexId, onSuccess }: FileInputProps) => {
       
       {/* Feedback visual sutil de quantos arquivos selecionados (opcional, mas ajuda na UX) */}
       {files && files.length > 0 && (
-        <p className="text-xs font-bold text-gray-500 mt-1 ml-1 flex items-center gap-1">
-          <FileUp className="w-3 h-3" />
-          {files.length} de até 20 arquivo(s) pronto(s) para envio
-        </p>
+        <>
+          {fileValidation.isValid ? (
+            <p className="text-xs font-bold text-green-700 mt-1 ml-1 flex items-center gap-1 bg-green-50 border border-green-300 rounded px-2 py-1">
+              <FileUp className="w-3 h-3" />
+              {fileValidation.pdfCount} arquivo(s) PDF pronto(s) para envio (máximo 20)
+            </p>
+          ) : (
+            <div className="text-xs font-bold text-red-700 mt-1 ml-1 bg-red-50 border-2 border-red-500 rounded px-3 py-2">
+              <div className="flex items-center gap-1 mb-1">
+                <AlertCircle className="w-4 h-4" />
+                Apenas arquivos PDF são aceitos
+              </div>
+              <div className="text-[11px] font-medium">
+                ❌ {fileValidation.nonPdfCount} arquivo(s) inválido(s): {fileValidation.nonPdfFiles.join(', ')}
+              </div>
+              {fileValidation.pdfCount > 0 && (
+                <div className="text-[11px] font-medium text-green-700 mt-1">
+                  ✅ {fileValidation.pdfCount} PDF(s) válido(s)
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

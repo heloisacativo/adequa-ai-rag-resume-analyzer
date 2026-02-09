@@ -38,6 +38,8 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [sessionToDelete, setSessionToDelete] = useState<ChatSession | null>(null);
+  const [isDeletingSession, setIsDeletingSession] = useState(false);
+  const [isJobDropdownOpen, setIsJobDropdownOpen] = useState(false);
   const { savedIndexes, loading: indexesLoading } = useSavedIndexes();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const jobSelectionInProgress = useRef(false);
@@ -284,6 +286,7 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
 
   const handleDeleteSession = async (sessionId: string) => {
     if (!userId) return;
+    setIsDeletingSession(true);
     try {
       await chatService.deleteSession(sessionId, userId);
       invalidateChatSessions();
@@ -295,6 +298,8 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
       setSessionToDelete(null);
     } catch (err) {
       console.error("Erro ao excluir conversa:", err);
+    } finally {
+      setIsDeletingSession(false);
     }
   };
 
@@ -360,16 +365,17 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
               <button
                 type="button"
                 onClick={() => setSessionToDelete(null)}
-                className="px-4 py-2 border border-black font-bold uppercase text-xs bg-white hover:bg-gray-100 transition-colors"
+                className="px-4 py-2 border border-black font-bold uppercase text-xs bg-white cursor-pointer hover:bg-gray-100 transition-colors"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={() => handleDeleteSession(sessionToDelete.session_id)}
-                className="px-4 py-2 bg-red-600 text-white border border-black font-bold uppercase text-xs hover:bg-red-700 transition-colors"
+                disabled={isDeletingSession}
+                className="px-4 py-2 bg-neo-blue text-neo-secondary border border-black font-bold uppercase text-xs cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Excluir
+                {isDeletingSession ? 'Excluindo...' : 'Excluir'}
               </button>
             </div>
           </div>
@@ -382,7 +388,7 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
           <button
             onClick={createNewChat}
             disabled={!userId}
-            className="w-full bg-black text-white px-4 py-2 border border-black font-black uppercase text-sm hover:bg-gray-800 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="cursor-pointer w-full bg-neo-blue  text-neo-secondary px-4 py-2 border border-black font-black uppercase text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="w-4 h-4" />
             Novo Chat
@@ -451,7 +457,7 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
                     title="Editar título"
                     className={cn(
                       "p-1.5 rounded shrink-0 opacity-70 hover:opacity-100 transition-opacity",
-                      currentSessionId === session.session_id ? "hover:bg-white/20 text-white" : "hover:bg-gray-100 text-gray-600"
+                      currentSessionId === session.session_id ? "hover:bg-white/20 text-white" : " cursor-pointer hover:bg-neo-blue text-neo-secondary"
                     )}
                   >
                     <Pencil className="w-3.5 h-3.5" />
@@ -463,7 +469,7 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
                   title="Excluir conversa"
                   className={cn(
                     "p-1.5 rounded shrink-0 opacity-70 hover:opacity-100 transition-opacity",
-                    currentSessionId === session.session_id ? "hover:bg-white/20 text-white" : "hover:bg-red-100 text-red-600"
+                    currentSessionId === session.session_id ? "hover:bg-white/20 text-white" : " cursor-pointer hover:bg-neo-blue text-neo-secondary"
                   )}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -478,41 +484,9 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
       <div className="flex-1 flex flex-col">
       
       {/* --- HEADER DE CONFIGURAÇÃO (Topo) --- */}
-      <div className="bg-gray-50 border-b border-black p-5 space-y-5">
-        
-        {/* 1. Seleção de Base de Dados */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-          <label className="text-xs font-black uppercase tracking-wide min-w-[120px] flex items-center gap-2">
-            <div className="w-2 h-2 bg-black rounded-full"></div>
-           Base de Dados:
-           </label>
-          <div className="flex-1 w-full relative">
-            {indexesLoading ? (
-              <span className="text-xs font-medium text-gray-500">Carregando índices...</span>
-            ) : (
-              <select
-                className="w-full sm:w-[300px] bg-white border border-black px-3 py-2 text-sm font-bold focus:outline-none focus:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all cursor-pointer appearance-none"
-                value={selectedIndexId}
-                onChange={(e) => setSelectedIndexId(e.target.value)}
-              >
-                <option value="">Selecione um índice...</option>
-                {savedIndexes.map((idx) => (
-                  <option key={idx.indexId} value={idx.indexId}>
-                    {idx.name} ({idx.resumeCount} docs)
-                  </option>
-                ))}
-              </select>
-            )}
-            {/* Seta customizada do select */}
-            <div className="pointer-events-none absolute inset-y-0 left-[280px] hidden sm:flex items-center px-2 text-black">
-              <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-            </div>
-          </div>
-        </div>
-
+      <div className="bg-gray-50  border-black p-5 space-y-5">
         {/* 2. Seleção de Modo (A PARTE QUE VOCÊ PEDIU DE VOLTA) */}
-        <div className="border-t border-gray-300 pt-4">
-          <label className="text-xs font-black uppercase tracking-wide block mb-3">Modo de Análise:</label>
+        <div className=" border-gray-300 ">
           
           <div className="flex flex-wrap gap-4">
             
@@ -522,7 +496,7 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
               className={cn(
                 "flex items-center gap-3 px-4 py-3 border cursor-pointer transition-all duration-200 select-none",
                 queryMode === "resumes" 
-                  ? "bg-black text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]" 
+                  ? "bg-neo-blue text-neo-secondary border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]" 
                   : "bg-white text-gray-600 border-gray-300 hover:border-black hover:text-black"
               )}
             >
@@ -549,7 +523,7 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
               className={cn(
                 "flex items-center justify-between px-4 py-3 border cursor-pointer transition-all duration-200 select-none",
                 queryMode === "job" 
-                  ? "bg-black text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]" 
+                  ? "bg-neo-blue text-neo-secondary border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]" 
                   : "bg-white text-gray-600 border-gray-300 hover:border-black hover:text-black"
               )}
             >
@@ -582,22 +556,62 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
               {jobsLoading ? (
                 <div className="flex items-center gap-2 text-sm"><Loader2 className="w-4 h-4 animate-spin"/> Carregando vagas...</div>
               ) : (
-                <select
-                  className="w-full bg-white border border-black px-3 py-2 text-sm font-bold focus:outline-none focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                  value={selectedJobId}
-                  onChange={(e) => setSelectedJobId(e.target.value)}
-                >
-                  <option value="">-- Selecione uma vaga --</option>
-                  {jobs.map((job) => (
-                    <option key={job.id} value={job.id}>{job.title}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <details 
+                    className="relative"
+                    open={isJobDropdownOpen}
+                    onToggle={(e) => setIsJobDropdownOpen((e.target as HTMLDetailsElement).open)}
+                  >
+                    <summary 
+                      className="w-full py-2 pl-3 pr-10 border-1 cursor-pointer border-black  font-semibold text-sm focus:border-black focus:outline-none focus:ring-2 focus:ring-black/20 bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:border-black list-none"
+                      style={{ 
+                        color: selectedJobId ? '#000000' : '#6b7280',
+                      }}
+                    >
+                      {selectedJobId 
+                        ? `${jobs.find(j => j.id === selectedJobId)?.title || 'Vaga selecionada'}`
+                        : 'Selecione uma vaga'
+                      }
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                        <svg className="h-5 w-5 text-gray-700" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    </summary>
+                    <div className="absolute z-50 w-full mt-1 border-1
+                     border-black  bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden max-h-60 overflow-y-auto">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedJobId('');
+                          setIsJobDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2.5 font-bold text-gray-500 bg-gray-50 hover:bg-gray-100 transition-colors text-sm"
+                      >
+                        Selecione uma vaga
+                      </button>
+                      {jobs.map((job) => (
+                        <button
+                          key={job.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedJobId(job.id);
+                            setIsJobDropdownOpen(false);
+                          }}
+                          className="cursor-pointer w-full text-left px-3 py-2.5 font-semibold text-black bg-white hover:bg-neo-blue transition-colors border-t border-gray-200 text-sm"
+                        >
+                          {job.title}
+                        </button>
+                      ))}
+                    </div>
+                  </details>
+                </div>
               )}
             </div>
             <button
               onClick={handleJobSelection}
               disabled={loading || !selectedJobId}
-              className="cursor-pointer bg-black text-white px-4 py-2 border border-black font-black uppercase text-xs hover:bg-gray-800 disabled:opacity-50 h-[38px]"
+              className="cursor-pointer bg-neo-blue text-neo-secondary px-4 py-2 border border-black font-black uppercase text-xs   disabled:opacity-50 h-[38px]"
             >
               Confirmar
             </button>
@@ -605,15 +619,14 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
         )}
       </div>
 
-      {/* --- ÁREA DE CHAT --- */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-white bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-gray-400 opacity-60">
-            <div className="w-16 h-16 border-2 border-gray-300 rounded-full flex items-center justify-center mb-4">
-              <MessageSquare className="w-8 h-8" />
+              <div className="w-16 h-16 border-2 border-gray-300 rounded-full flex items-center justify-center mb-4">
+                <MessageSquare className="w-8 h-8" />
             </div>
-            <p className="font-bold uppercase tracking-wider text-sm">Histórico Vazio</p>
-            <p className="text-xs mt-2">Configure acima e inicie a conversa.</p>
+            <p className="font-bold uppercase tracking-wider text-sm text-neo-secondary">Histórico Vazio</p>
+            <p className="text-xs mt-2 text-neo-secondary font-extrabold">Digite a descrição da vaga abaixo ou selecione acima uma vaga cadastrada.</p>
           </div>
         ) : (
           messages.map((message, index) => (
@@ -646,16 +659,15 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
         
         {loading && (
           <div className="flex items-start gap-2 mr-auto">
-             <div className="bg-white border border-black px-4 py-3 rounded-xl rounded-tl-none shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2">
+             <div className="bg-white border border-black px-4 py-3   rounded-tl-none shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-xs font-bold uppercase">Digitando...</span>
+                <span className="text-xs font-bold uppercase">Analisando...</span>
              </div>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* --- INPUT AREA --- */}
       <div className="p-4 bg-white border-t border-black flex gap-2">
         <input
           type="text"
