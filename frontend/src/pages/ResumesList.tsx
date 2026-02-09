@@ -48,10 +48,11 @@ export default function ResumesList() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ resumeId: string; fileName: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { resumes: resumesFromApi, isLoading: loading, error: resumesError, refetch, invalidate } = useResumes(user?.id);
+  const { resumes: resumesFromApi, isLoading: loading, error: resumesError, invalidate } = useResumes(user?.id);
   const resumes: DatabaseResume[] = (Array.isArray(resumesFromApi) ? resumesFromApi : []).map((r) => ({
     resume_id: r.resume_id,
     candidate_name: r.candidate_name,
@@ -89,14 +90,12 @@ export default function ResumesList() {
       setSelectedFiles([]);
       setShowUpload(false);
       invalidate();
-      await refetch();
     } catch (error) {
       console.error('Erro ao fazer upload:', error);
       const message = error instanceof Error ? error.message : 'Erro ao fazer upload dos currículos';
       toast({ title: 'Erro no upload', description: message, variant: 'error' });
       // Atualiza a lista mesmo quando dá erro (ex.: duplicado), para mostrar o que está no banco
       invalidate();
-      await refetch();
     } finally {
       setIsUploading(false);
     }
@@ -137,10 +136,10 @@ export default function ResumesList() {
 
   const handleConfirmDelete = async () => {
     if (!deleteModal) return;
+    setIsDeleting(true);
     try {
       await resumeService.deleteResume(deleteModal.resumeId);
       invalidate();
-      await refetch();
       closeDeleteModal();
       toast({
         title: 'Currículo excluído',
@@ -154,6 +153,8 @@ export default function ResumesList() {
         description: 'Não foi possível excluir o currículo. Tente novamente.',
         variant: 'error',
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -312,7 +313,7 @@ export default function ResumesList() {
               <FileText className="w-10 h-10 sm:w-12 sm:h-12 mb-3 text-neo-primary mx-auto" strokeWidth={1.5} />
               <p className="text-base sm:text-lg font-black text-black uppercase mb-3">Falha ao carregar currículos</p>
               <p className="text-sm text-gray-600 mb-4">Faça login ou tente novamente.</p>
-              <button type="button" onClick={() => refetch()} className="px-4 py-2 bg-black text-white font-bold uppercase text-sm rounded border-2 border-black hover:bg-gray-800">Tentar novamente</button>
+              <button type="button" onClick={() => invalidate()} className="px-4 py-2 bg-black text-white font-bold uppercase text-sm rounded border-2 border-black hover:bg-gray-800">Tentar novamente</button>
             </div>
           ) : showEmptyState ? (
             <div className="bg-white border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-8 text-center bg-gray-50">
@@ -412,7 +413,7 @@ export default function ResumesList() {
                         <FileText className="w-12 h-12 mb-4 text-neo-primary" strokeWidth={1.5} />
                         <p className="text-lg md:text-xl font-black text-black uppercase mb-2">Falha ao carregar currículos</p>
                         <p className="text-sm text-gray-600 mb-4">Faça login ou tente novamente.</p>
-                        <button type="button" onClick={() => refetch()} className="px-4 py-2 bg-black text-white font-bold uppercase text-sm rounded border-2 border-black hover:bg-gray-800">Tentar novamente</button>
+                      <button type="button" onClick={() => invalidate()} className="px-4 py-2 bg-black text-white font-bold uppercase text-sm rounded border-2 border-black hover:bg-gray-800">Tentar novamente</button>
                       </div>
                     </td>
                   </tr>
@@ -462,7 +463,7 @@ export default function ResumesList() {
                           <div className="flex justify-end gap-1.5 md:gap-2">
                             <button
                               type="button"
-                              className="p-1.5 md:p-2 border-2 border-black bg-neo-primary rounded hover:bg-white transition-all text-neo-secondary hover:text-neo-primary cursor-pointer"
+                              className="p-1.5 md:p-2 border-2 border-black bg-neo-primary rounded transition-all text-neo-secondary hover:bg-neo-blue cursor-pointer"
                               title="Baixar Arquivo"
                               onClick={() => handleDownload(resume)}
                             >
@@ -470,7 +471,7 @@ export default function ResumesList() {
                             </button>
                             <button
                               type="button"
-                              className="p-1.5 md:p-2 border-2 border-black bg-neo-primary rounded hover:bg-white transition-all text-neo-secondary hover:text-neo-primary cursor-pointer"
+                              className="p-1.5 md:p-2 border-2 border-black bg-neo-primary rounded transition-all text-neo-secondary hover:bg-neo-blue cursor-pointer"
                               title="Excluir currículo"
                               onClick={() => openDeleteModal(resume)}
                             >
@@ -510,7 +511,6 @@ export default function ResumesList() {
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 id="delete-modal-title" className="text-xl font-black uppercase tracking-tight text-black flex items-center gap-2">
-                  <Trash2 className="w-5 h-5 text-red-600" strokeWidth={2} />
                   Excluir currículo
                 </h3>
                 <button
@@ -536,9 +536,10 @@ export default function ResumesList() {
                 <button
                   type="button"
                   onClick={handleConfirmDelete}
-                  className="cursor-pointer flex-1 px-4 py-2.5 bg-red-600 text-white font-bold uppercase border-2 border-black rounded-lg hover:bg-red-700 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] active:translate-y-[2px] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] transition-all"
+                  disabled={isDeleting}
+                  className="cursor-pointer flex-1 px-4 py-2.5 bg-neo-blue text-neo-secondary font-bold uppercase border-2 border-neo-secondary rounded-lg hover:bg-neo-primary shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] active:translate-y-[2px] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Excluir
+                  {isDeleting ? 'Excluindo...' : 'Excluir'}
                 </button>
               </div>
             </div>
