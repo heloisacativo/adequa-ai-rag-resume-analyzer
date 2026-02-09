@@ -165,8 +165,8 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
 
       // Feedback visual
       setMessages((prev) => [...prev, { 
-        sender: "Sistema", 
-        text: `✅ **Vaga Confirmada:** ${selectedJob.title}\nLocal: ${selectedJob.location}\n\nAnalisando candidatos compatíveis...` 
+        sender: "Você", 
+        text: `Vaga: ${selectedJob.title}\nLocal: ${selectedJob.location}\n` 
       }]);
 
       if (selectedIndexId) {
@@ -175,8 +175,8 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
           const data = await resumeService.search(autoQuery, selectedIndexId);
           
           setMessages((prev) => [...prev, {
-            sender: "Sistema",
-            text: `📊 **Análise Automática**\n\n${data.response}`
+            sender: "Assistente",
+            text: `Resposta baseado em análise com Inteligência Artificial\n${data.response}`
           }]);
 
           await saveMessagesToBackend(autoQuery, data.response, sessionIdToUse);
