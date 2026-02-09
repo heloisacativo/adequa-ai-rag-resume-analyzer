@@ -26,7 +26,6 @@ class ChatService:
             created_at=datetime.now(UTC),
         )
         await self.chat_repository.create_session(session)
-        # Manter no máximo 10 conversas: remover as mais antigas
         all_sessions = await self.chat_repository.get_sessions_by_user(user_id)
         for old_session in all_sessions[self.MAX_SESSIONS_PER_USER:]:
             await self.chat_repository.delete_session(old_session.session_id)

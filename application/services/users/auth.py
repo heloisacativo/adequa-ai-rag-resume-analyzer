@@ -30,7 +30,6 @@ class AuthenticationService:
             UserInactiveError: If user account is inactive
             InvalidCredentialsError: If password doesn't match
         """
-        # Regra de negócio: usuário inativo não pode fazer login
         if not user.is_active:
             raise UserInactiveError("User account is inactive")
         

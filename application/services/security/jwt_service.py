@@ -10,7 +10,7 @@ class TokenGenerator:
         payload = {
             "user_id": user_id,
             "user_type": user_type,
-            "exp": datetime.utcnow() + timedelta(hours=1),  # Adjust expiration as needed
+            "exp": datetime.utcnow() + timedelta(hours=1),  
         }
         token = jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
         return token
