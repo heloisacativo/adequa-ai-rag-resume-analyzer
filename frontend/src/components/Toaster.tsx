@@ -24,7 +24,7 @@ const Toaster = () => {
         const variantClasses = {
           success: 'bg-neo-secondary text-black border-2 border-black',
           error: 'bg-red-500 text-white border-2 border-black',
-          info: 'bg-blue-500 text-white border-2 border-black',
+          info: 'bg-neo-blue text-neo-secondary border-2 border-black',
         };
 
         return (

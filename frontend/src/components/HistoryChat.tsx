@@ -40,14 +40,9 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
   const [sessionToDelete, setSessionToDelete] = useState<ChatSession | null>(null);
   const [isDeletingSession, setIsDeletingSession] = useState(false);
   const [isJobDropdownOpen, setIsJobDropdownOpen] = useState(false);
+  const [loadingSession, setLoadingSession] = useState(false);
   const { savedIndexes, loading: indexesLoading } = useSavedIndexes();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const jobSelectionInProgress = useRef(false);
-
-  // Auto-scroll
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
 
   // Carregar vagas quando mudar para modo Job
   useEffect(() => {
@@ -56,7 +51,7 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
 
   // Carregar sessão atual do backend após carregar sessões (ou abrir a sessão vinda do histórico)
   useEffect(() => {
-    if (chatSessions.length === 0) return;
+    if (chatSessions.length === 0 || loading) return; // Evita carregar durante envio de mensagens
     if (openSessionId) {
       const session = chatSessions.find((s) => s.session_id === openSessionId);
       if (session) selectChatSession(session);
@@ -147,11 +142,10 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
         if (!currentSessionId) setCurrentSessionId(existingSessionId);
         try {
           await chatService.updateSessionTitle(existingSessionId, userId, title);
-          invalidateChatSessions();
-          await refetchChatSessions();
+          // Invalidação apenas quando necessário
         } catch (_) {
           // ignora falha ao atualizar título
-        }
+        } 
       } else {
         const session = await chatService.createSession({
           user_id: userId,
@@ -159,8 +153,7 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
         });
         sessionIdToUse = session.session_id;
         setCurrentSessionId(sessionIdToUse);
-        invalidateChatSessions();
-        await refetchChatSessions();
+        // Invalidação apenas quando necessário
       }
 
       // Feedback visual
@@ -171,16 +164,28 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
 
       if (selectedIndexId) {
         try {
-          const autoQuery = `Vaga: ${selectedJob.title} - ${selectedJob.description}. Com base nesta vaga, analise os melhores candidatos, indicando pontos fortes, fracos e score de aderência.`;
+          const autoQuery = `Vaga: ${selectedJob.title} - Localização: ${selectedJob.location} - Descrição: ${selectedJob.description}. Com base nesta vaga, analise os melhores candidatos considerando compatibilidade de localização, pontos fortes, fracos e score de aderência.`;
           const data = await resumeService.search(autoQuery, selectedIndexId);
           
-          setMessages((prev) => [...prev, {
+          const assistantMessage = {
             sender: "Assistente",
             text: `Resposta baseado em análise com Inteligência Artificial\n${data.response}`
-          }]);
+          };
+          
+          setMessages((prev) => [...prev, assistantMessage]);
 
-          await saveMessagesToBackend(autoQuery, data.response, sessionIdToUse);
+          // Salva no backend após adicionar ao estado
+          try {
+            await saveMessagesToBackend(autoQuery, data.response, sessionIdToUse);
+            // Invalida sessions apenas depois de completar tudo
+            setTimeout(() => {
+              invalidateChatSessions();
+            }, 100);
+          } catch (backendError) {
+            console.error("Erro ao salvar análise automática no backend:", backendError);
+          }
         } catch (error) {
+          console.error("Erro na análise automática:", error);
           setMessages((prev) => [...prev, {
             sender: "Sistema",
             text: "Erro ao gerar análise automática. Tente perguntar manualmente."
@@ -209,7 +214,9 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
     const messageToSend = input.trim();
     if (!messageToSend) return;
 
-    setMessages((prev) => [...prev, { sender: "Usuário", text: messageToSend }]);
+    // Adiciona mensagem do usuário imediatamente
+    const userMessage = { sender: "Você", text: messageToSend };
+    setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setLoading(true);
 
@@ -218,16 +225,37 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
       if (queryMode === "job") {
         const selectedJob = jobs.find(job => job.id === selectedJobId);
         if (selectedJob) {
-          query = `Contexto da Vaga: ${selectedJob.title} (${selectedJob.description}). Pergunta: ${messageToSend}`;
+          // Só adiciona contexto detalhado se a pergunta parecer precisar de análise específica da vaga
+          const needsJobContext = /\b(ader[êe]ncia|compatib|adequa|match|encaixa|atende|requisito|qualifica|perfil|vaga)\b/i.test(messageToSend);
+          
+          if (needsJobContext) {
+            query = `Contexto da Vaga: ${selectedJob.title} - Localização: ${selectedJob.location} - Descrição: ${selectedJob.description}. Pergunta: ${messageToSend}`;
+          } else {
+            // Para perguntas mais abertas, só menciona que há uma vaga selecionada
+            query = `[Vaga de referência: ${selectedJob.title}] ${messageToSend}`;
+          }
         }
       }
 
       const data = await resumeService.search(query, selectedIndexId);
-      setMessages((prev) => [...prev, { sender: "Assistente", text: data.response }]);
+      const assistantMessage = { sender: "Assistente", text: data.response };
+      
+      // Adiciona resposta do assistente
+      setMessages((prev) => [...prev, assistantMessage]);
 
-      // Save to backend
-      await saveMessagesToBackend(messageToSend, data.response);
+      // Salva no backend após adicionar ao estado
+      try {
+        await saveMessagesToBackend(messageToSend, data.response);
+        // Invalida sessions apenas depois de completar tudo
+        setTimeout(() => {
+          if (userId) invalidateChatSessions();
+        }, 100);
+      } catch (backendError) {
+        console.error("Erro ao salvar no backend:", backendError);
+        // Mensagem já está no estado, então não precisa desfazer
+      }
     } catch (error) {
+      console.error("Erro na busca:", error);
       setMessages((prev) => [...prev, { sender: "Assistente", text: "Erro ao processar resposta." }]);
     } finally {
       setLoading(false);
@@ -250,12 +278,11 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
         });
         sessionId = session.session_id;
         setCurrentSessionId(sessionId);
-        invalidateChatSessions();
-        await refetchChatSessions();
+        // Não invalida aqui para evitar conflitos durante envio de mensagens
       }
 
       // Add messages
-      await chatService.addMessage(sessionId, { sender: "Usuário", text: userMessage });
+      await chatService.addMessage(sessionId, { sender: "Você", text: userMessage });
       await chatService.addMessage(sessionId, { sender: "Assistente", text: assistantMessage });
     } catch (error) {
       console.error("Erro ao salvar mensagens:", error);
@@ -270,10 +297,11 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
         title: `Novo Chat ${new Date().toLocaleString()}`,
       });
       setCurrentSessionId(session.session_id);
-      invalidateChatSessions();
-      await refetchChatSessions();
       setMessages([]);
       setInput("");
+      // Invalidar apenas após completar todas as operações
+      invalidateChatSessions();
+      await refetchChatSessions();
     } catch (error) {
       console.error("Erro ao criar novo chat:", error);
     }
@@ -324,6 +352,8 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
   };
 
   const selectChatSession = async (session: ChatSession) => {
+    if (loading) return; // Evita carregar sessão durante envio de mensagens
+    setLoadingSession(true);
     setCurrentSessionId(session.session_id);
     setMessages([]);
     try {
@@ -332,9 +362,13 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
         sender: m.sender,
         text: m.text,
       }));
-      setMessages(formattedMessages);
+      if (!loading) { // Só atualiza se não estiver enviando mensagem
+        setMessages(formattedMessages);
+      }
     } catch (error) {
       console.error("Erro ao carregar mensagens:", error);
+    } finally {
+      setLoadingSession(false);
     }
   };
 
@@ -417,8 +451,8 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
               <div
                 key={session.session_id}
                 className={cn(
-                  "group flex items-center gap-1 w-full text-left p-3 border border-gray-300 hover:border-black transition-all text-sm",
-                  currentSessionId === session.session_id ? "bg-black text-white border-black" : "bg-white text-gray-700"
+                  "cursor-pointer group flex items-center gap-1 w-full text-left p-3 border border-gray-300 hover:border-black transition-all text-sm",
+                  currentSessionId === session.session_id ? "bg-black text-white border-black" : " bg-white text-gray-700"
                 )}
               >
                 <button
@@ -620,7 +654,15 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-white bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
-        {messages.length === 0 ? (
+        {loadingSession ? (
+          <div className="h-full flex flex-col items-center justify-center text-gray-400 opacity-60">
+            <div className="w-16 h-16 border-2 border-gray-300 rounded-full flex items-center justify-center mb-4">
+              <Loader2 className="w-8 h-8 animate-spin" />
+            </div>
+            <p className="font-bold uppercase tracking-wider text-sm text-neo-secondary">Carregando conversa</p>
+            <p className="text-xs mt-2 text-neo-secondary font-extrabold">Aguarde enquanto carregamos suas mensagens...</p>
+          </div>
+        ) : messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-gray-400 opacity-60">
               <div className="w-16 h-16 border-2 border-gray-300 rounded-full flex items-center justify-center mb-4">
                 <MessageSquare className="w-8 h-8" />
@@ -634,20 +676,20 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
               key={index}
               className={cn(
                 "flex flex-col max-w-[85%] animate-in fade-in slide-in-from-bottom-2 duration-300",
-                message.sender === "Usuário" ? "ml-auto items-end" : "mr-auto items-start"
+                message.sender === "Você" ? "ml-auto items-end" : "mr-auto items-start"
               )}
             >
               <div className="flex items-center gap-2 mb-1">
-                {message.sender !== "Usuário" && <Bot className="w-3 h-3 text-black" />}
+                {message.sender !== "Você" && <Bot className="w-3 h-3 text-black" />}
                 <span className="text-[10px] font-black uppercase text-gray-500">
                   {message.sender}
                 </span>
-                {message.sender === "Usuário" && <User className="w-3 h-3 text-black" />}
+                {message.sender === "Você" && <User className="w-3 h-3 text-black" />}
               </div>
               
               <div className={cn(
                 "p-4 text-sm leading-relaxed whitespace-pre-wrap shadow-[3px_3px_0px_0px_rgba(0,0,0,0.1)] border",
-                message.sender === "Usuário"
+                message.sender === "Você"
                   ? "bg-black text-white border-black rounded-xl rounded-tr-none"
                   : "bg-white text-black border-black rounded-xl rounded-tl-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
               )}>
@@ -665,7 +707,6 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
              </div>
           </div>
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       <div className="p-4 bg-white border-t border-black flex gap-2">
@@ -694,14 +735,15 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
         <button
           className="
             px-6 
-            bg-yellow-300 text-black 
+            bg-neo-blue text-black 
             border border-black 
             font-black uppercase text-xs tracking-wider
-            hover:bg-yellow-400 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-[1px]
+            hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-[1px]
             active:translate-y-0 active:shadow-none
             disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed
             transition-all
             flex items-center gap-2
+            cursor-pointer
           "
           onClick={handleSend}
           disabled={loading || !input.trim() || !selectedIndexId || (queryMode === "job" && !selectedJobId)}

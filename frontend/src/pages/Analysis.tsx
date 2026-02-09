@@ -328,7 +328,7 @@ function Analysis() {
                         <p className="text-gray-500 font-bold text-sm">Selecione os candidatos para compor a base de análise.</p>
                       </div>
                       
-                      {selectedResumes.length > 0 && (
+                      {selectedResumes.length > 2 && (
                         <button
                           onClick={handleLocalUpload}
                           disabled={uploading}
@@ -537,6 +537,35 @@ function Analysis() {
                         })}
                       </div>
                     )}
+                    
+                    {/* Botão Analisar - posicionado à esquerda e menor */}
+                    <div className="flex justify-end">
+                      <button
+                        onClick={handleLocalUpload}
+                        disabled={uploading || selectedResumes.length < 2}
+                        className={cn(
+                          "cursor-pointer flex items-center gap-2 border-2 border-black px-4 py-2 rounded-lg font-bold text-sm uppercase tracking-wide transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)] active:translate-y-[2px] active:shadow-none",
+                          selectedResumes.length >= 2 && !uploading
+                            ? "bg-neo-blue text-black hover:bg-blue-200"
+                            : "bg-gray-200 text-gray-400 cursor-not-allowed opacity-50"
+                        )}
+                      >
+                        {uploading ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            Processando...
+                          </>
+                        ) : (
+                          <>
+                            <Play className="w-3.5 h-3.5" />
+                            {selectedResumes.length >= 2 
+                              ? `Analisar (${selectedResumes.length})` 
+                              : `Selecione pelo menos 2`
+                            }
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

@@ -19,8 +19,8 @@ export default function ChatHistory() {
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [savingTitle, setSavingTitle] = useState(false);
 
-  const openInAnalysis = (sessionId: string) => {
-    navigate("/ia-analysis", { state: { openSessionId: sessionId } });
+  const openConversation = (sessionId: string) => {
+    navigate(`/chat/${sessionId}`);
   };
 
   const handleDelete = async (sessionId: string) => {
@@ -144,7 +144,7 @@ export default function ChatHistory() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => openInAnalysis(session.session_id)}
+                    onClick={() => openConversation(session.session_id)}
                     className="inline-flex items-center gap-1.5 bg-black text-white px-4 py-2 rounded font-bold text-sm hover:bg-gray-800"
                   >
                     Abrir
@@ -230,7 +230,7 @@ export default function ChatHistory() {
                 type="button"
                 onClick={() => handleDelete(deleteConfirmSessionId)}
                 disabled={!!deletingSessionId}
-                className="cursor-pointer px-4 py-2.5 rounded-lg font-black uppercase text-sm border-2 border-black bg-red-500 text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-red-600 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-red-500 disabled:hover:translate-y-0"
+                className="cursor-pointer px-4 py-2.5 rounded-lg font-black uppercase text-sm border-2 border-black bg-neo-blue text-neo-secondary shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-red-500 disabled:hover:translate-y-0"
               >
                 {deletingSessionId ? "Excluindo" : "Excluir"}
               </button>

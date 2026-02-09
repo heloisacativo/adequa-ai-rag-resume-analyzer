@@ -146,7 +146,7 @@ export default function LoginPage() {
                   type="submit"
                   className={[
                     'btn bg-neo-primary border-medium border-neo-secondary text-neo-secondary font-black w-full min-w-0 shadow-neo-lg hover:shadow-neo-2xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed',
-                    'text-lg min-[360px]:text-xl sm:text-2xl',
+                    'text-sm min-[360px]:text-md sm:text-md',
                     'py-3 min-[360px]:py-4 sm:py-5',
                     'pl-4 pr-4 min-[360px]:pl-4 min-[360px]:pr-4 sm:pl-6 sm:pr-6',
                   ].join(' ')}

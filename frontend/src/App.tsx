@@ -23,6 +23,7 @@ import ResumeAnalysis from "./pages/ResumeAnalysis";
 import NotFound from "./pages/NotFound";
 import JobsManagement from "./pages/JobsManagement";
 import ChatHistory from "./pages/ChatHistory";
+import ChatDetails from "./pages/ChatDetails";
 import ResumesGroups from "./pages/ResumesGroups";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ const App = () => (
           <Route path="/resumes" element={<ProtectedRoute><ResumesList /></ProtectedRoute>} />
           <Route path="/resumes/groups" element={<ProtectedRoute><ResumesGroups /></ProtectedRoute>} />
           <Route path="/chat-history" element={<ProtectedRoute><ChatHistory /></ProtectedRoute>} />
+          <Route path="/chat/:sessionId" element={<ProtectedRoute><ChatDetails /></ProtectedRoute>} />
           <Route path="/ai-analysis" element={<ProtectedRoute><AIAnalysis /></ProtectedRoute>} />
 
           <Route path="*" element={<NotFound />} />
