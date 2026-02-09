@@ -98,11 +98,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <nav className="flex-1 p-2 min-[360px]:p-3 sm:p-4 space-y-1.5 sm:space-y-2 overflow-y-auto overflow-touch custom-scrollbar">
           {navItems.map((item) => {
             const Icon = item.icon;
+            
+            const hasMoreSpecificRoute = navItems.some(other => 
+              other.to !== item.to && 
+              other.to.startsWith(item.to) && 
+              (location.pathname === other.to || location.pathname.startsWith(other.to + "/"))
+            );
+            
             const isActive =
               location.pathname === item.to ||
               (item.to !== "/dashboard" &&
                 item.to !== "/candidate-dashboard" &&
-                location.pathname.startsWith(item.to));
+                location.pathname.startsWith(item.to + "/") &&
+                !hasMoreSpecificRoute);
 
             return (
               <NavLink
