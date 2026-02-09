@@ -73,13 +73,13 @@ export default function ChatHistory() {
           </p>
         </div>
 
-        <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4 flex items-start gap-3">
-          <History className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+        <div className="bg-amber-50 border-2 border-neo-secondary rounded-lg p-4 flex items-start gap-3">
+          <History className="w-5 h-5 text-neo-secondary shrink-0 mt-0.5" />
           <div>
-            <p className="font-bold text-amber-900">
+            <p className="font-bold text-neo-secondary">
               Limite de {MAX_CONVERSATIONS} conversas
             </p>
-            <p className="text-sm text-amber-800 mt-0.5">
+            <p className="text-sm text-neo-secondary mt-0.5">
               São mantidas no máximo {MAX_CONVERSATIONS} conversas. Ao criar a 11ª, a mais antiga é excluída automaticamente para liberar espaço.
             </p>
           </div>
@@ -183,7 +183,7 @@ export default function ChatHistory() {
                 }
               }}
               placeholder="Título da conversa"
-              className="w-full font-bold text-black px-3 py-2.5 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 mb-6"
+              className="w-full font-bold text-black px-3 py-2.5 border-2 border-black rounded-lg focus:outline-none mb-6"
               autoFocus
             />
             <div className="flex justify-end gap-3">
@@ -201,7 +201,7 @@ export default function ChatHistory() {
                 type="button"
                 onClick={() => saveTitle(sessionToEdit.session_id)}
                 disabled={savingTitle}
-                className="cursor-pointer px-4 py-2.5 rounded-lg font-black uppercase text-sm border-2 border-black bg-black text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-800 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                className="cursor-pointer px-4 py-2.5 rounded-lg font-black uppercase text-sm border-2 border-black bg-neo-blue text-neo-secondary shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-800 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
                 {savingTitle ? "Salvando..." : "Salvar"}
               </button>

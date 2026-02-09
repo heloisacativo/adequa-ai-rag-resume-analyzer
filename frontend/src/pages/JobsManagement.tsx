@@ -351,9 +351,7 @@ export default function JobsManagement() {
                             <p className="font-black text-base md:text-lg leading-tight uppercase group-hover:underline decoration-2 underline-offset-2 truncate">
                               {job.title}
                             </p>
-                            <span className="text-[10px] md:text-xs font-bold text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded border border-black/20 mt-1 inline-block">
-                              ID: {job.id.slice(0, 6)}
-                            </span>
+                        
                           </div>
                         </div>
                       </td>
