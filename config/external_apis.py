@@ -15,6 +15,10 @@ class ExternalAPISettings(BaseSettings):
         external_api_base_url (str): Alias for museum_api_base.
         catalog_api_base_url (str): Alias for catalog_api_base.
         http_timeout (float): HTTP request timeout in seconds.
+        smtp_server (str): SMTP server address.
+        smtp_port (int): SMTP port.
+        email_sender (str): Email sender address.
+        email_password (str): Email password.
     """
 
     museum_api_base: str = Field(
@@ -33,6 +37,11 @@ class ExternalAPISettings(BaseSettings):
     )
 
     http_timeout: float = Field(10.0, alias="HTTP_TIMEOUT")
+    smtp_server: str = Field(default="smtp.gmail.com", env="SMTP_SERVER")
+    smtp_port: int = Field(default=587, env="SMTP_PORT")
+    smtp_user: str = Field(default="", env="SMTP_USER")
+    email_sender: str = Field(default="", env="EMAIL_SENDER")
+    email_password: str = Field(default="", env="EMAIL_PASSWORD")
 
     class Config:
         env_file = ".env"
