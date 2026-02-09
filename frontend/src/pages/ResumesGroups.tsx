@@ -224,7 +224,7 @@ export default function ResumesGroups() {
                   <button
                     type="button"
                     onClick={() => openDeleteModal(g)}
-                    className="p-2 cursor-pointer border-2 border-black bg-neo-primary rounded hover:bg-red-50 text-red-600 transition-colors"
+                    className="p-3 cursor-pointer border-2 border-black bg-neo-primary rounded hover:bg-red-50 text-neo-secondary transition-colors"
                     title="Excluir grupo"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -239,13 +239,13 @@ export default function ResumesGroups() {
           <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white border-2 border-black rounded-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 max-w-md w-full">
               <p className="text-gray-700 font-medium mb-6">
-                Excluir o grupo &quot;{groupToDelete.name}&quot;? Os currículos não são apagados, só a organização.
+                Tem certeza que deseja excluir o grupo &quot;{groupToDelete.name}&quot;? Os currículos não são apagados, apenas a organização.
               </p>
               <div className="flex gap-3 justify-center">
                 <button type="button" onClick={() => { setShowDeleteModal(false); setGroupToDelete(null); }} className="px-6 cursor-pointer py-2.5 bg-white border-2 border-black rounded font-bold uppercase text-sm">
                   Cancelar
                 </button>
-                <button type="button" onClick={confirmDelete} disabled={deleting} className="px-6 py-2.5 bg-red-600 cursor-pointer text-white rounded font-bold uppercase text-sm disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                <button type="button" onClick={confirmDelete} disabled={deleting} className="px-6 py-2.5 bg-neo-blue border-neo-secondary border-2 cursor-pointer text-neo-secondary rounded font-bold uppercase text-sm disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                   {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                   {deleting ? 'Excluindo' : 'Excluir'}
                 </button>
