@@ -1,20 +1,36 @@
 import type React from "react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { resumeService } from "../lib/api";
 import { useSavedIndexes } from "../hooks/useSavedIndexes";
 import { useToast } from "../hooks/use-toats";
 import { Upload, FileUp, AlertCircle, X, Trash2, Plus, FolderOpen } from "lucide-react"; 
+
 interface FileInputProps {
   label?: string;
   setIndexId: (id: string) => void;
   onSuccess?: () => void;
+  onFilesChange?: (files: File[]) => void;
+  externalFiles?: File[];
+  onRemoveFile?: (index: number) => void;
+  onClearAll?: () => void;
+  disableAutoUpload?: boolean;
 }
 
-const FileInput = ({ label, setIndexId, onSuccess }: FileInputProps) => {
-  const [files, setFiles] = useState<File[]>([]);
+const FileInput = ({ label, setIndexId, onSuccess, onFilesChange, externalFiles, onRemoveFile, onClearAll, disableAutoUpload }: FileInputProps) => {
+  const [internalFiles, setInternalFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const { loadIndexes } = useSavedIndexes();
   const { toast } = useToast();
+
+  // Usa arquivos externos se fornecidos, senão usa internos
+  const files = externalFiles !== undefined ? externalFiles : internalFiles;
+  const setFiles = externalFiles !== undefined ? (files: File[]) => onFilesChange?.(files) : setInternalFiles;
+
+  useEffect(() => {
+    if (externalFiles !== undefined && onFilesChange) {
+      onFilesChange(externalFiles);
+    }
+  }, []);
 
   const fileValidation = useMemo(() => {
     if (!files || files.length === 0) return { isValid: true, pdfCount: 0, nonPdfCount: 0, nonPdfFiles: [] as string[] };
@@ -53,11 +69,19 @@ const FileInput = ({ label, setIndexId, onSuccess }: FileInputProps) => {
   };
 
   const removeFile = (index: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== index));
+    if (onRemoveFile) {
+      onRemoveFile(index);
+    } else {
+      setInternalFiles(prev => prev.filter((_, i) => i !== index));
+    }
   };
 
   const clearAllFiles = () => {
-    setFiles([]);
+    if (onClearAll) {
+      onClearAll();
+    } else {
+      setInternalFiles([]);
+    }
   };
 
   const handleUpload = async () => {
@@ -155,37 +179,39 @@ const FileInput = ({ label, setIndexId, onSuccess }: FileInputProps) => {
           </label>
         </div>
 
-        <button
-          onClick={handleUpload}
-          disabled={files.length === 0 || uploading || !fileValidation.isValid}
-          className="
-            flex items-center justify-center gap-2
-            px-6 py-3
-            bg-neo-primary text-neo-secondary font-bold uppercase tracking-wider
-            border-2 border-black rounded-lg
-            shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
-            
-            hover:bg-gray-800 hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]
-            
-            active:translate-y-[2px] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
-            
-            disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed disabled:bg-gray-400 disabled:border-gray-400
-            transition-all duration-200
-            whitespace-nowrap
-          "
-        >
-          {uploading ? (
-            <>
-              <span className="animate-spin mr-2">⏳</span>
-              Enviando...
-            </>
-          ) : (
-            <>
-              <Upload className="w-4 h-4" />
-              Enviar
-            </>
-          )}
-        </button>
+        {!disableAutoUpload && (
+          <button
+            onClick={handleUpload}
+            disabled={files.length === 0 || uploading || !fileValidation.isValid}
+            className="
+              flex items-center justify-center gap-2
+              px-6 py-3
+              bg-neo-primary text-neo-secondary font-bold uppercase tracking-wider
+              border-2 border-black rounded-lg
+              shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
+              
+              hover:bg-gray-800 hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]
+              
+              active:translate-y-[2px] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
+              
+              disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed disabled:bg-gray-400 disabled:border-gray-400
+              transition-all duration-200
+              whitespace-nowrap
+            "
+          >
+            {uploading ? (
+              <>
+                <span className="animate-spin mr-2">⏳</span>
+                Enviando...
+              </>
+            ) : (
+              <>
+                <Upload className="w-4 h-4" />
+                Enviar
+              </>
+            )}
+          </button>
+        )}
       </div>
       
       {files && files.length > 0 && (

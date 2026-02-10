@@ -3,7 +3,6 @@ import { useLocation, Link } from "react-router-dom";
 import FileInput from "../components/FileInput";
 import HistoryChat from "../components/HistoryChat";
 import ChatProvider from "../contexts/ChatProvider";
-import { useResumeUpload } from "../hooks/useResumeUpload";
 import { useResumes } from "../hooks/useResumes";
 import { resumeService, chatService } from "../lib/api";
 import { useToast } from "../hooks/use-toats";
@@ -47,9 +46,9 @@ function Analysis() {
   const [resumeGroups, setResumeGroups] = useState<ResumeGroup[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string>("");
   const [loadingGroups, setLoadingGroups] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   
   const { user } = useAuth();
-  const { uploadedData } = useResumeUpload();
   const { toast } = useToast();
   const { resumes: resumesFromApi, isLoading: loadingResumes, invalidate: invalidateResumes } = useResumes(user?.id);
 
@@ -200,6 +199,63 @@ function Analysis() {
     setCurrentStep(0);
     setIndexId("");
     setSelectedResumes([]);
+    setPendingFiles([]);
+  };
+
+  const handleUploadPendingFiles = async () => {
+    if (pendingFiles.length === 0) return;
+    if (analisarInProgressRef.current) return;
+    analisarInProgressRef.current = true;
+
+    try {
+      setUploading(true);
+      const data = await resumeService.uploadResumes(pendingFiles);
+      setIndexId(data.vector_index_id);
+      
+      if (user?.id) {
+        try {
+          const session = await chatService.createSession({
+            user_id: user.id,
+            title: `Análise de currículos (${pendingFiles.length})`,
+          });
+          setSessionIdFromAnalisar(session.session_id);
+        } catch (e) {
+          console.error("Erro ao criar sessão de chat:", e);
+        }
+      }
+      
+      toast({
+        title: 'Upload concluído!',
+        description: `${data.indexed_files} currículos indexados.`,
+        variant: 'success',
+      });
+      
+      setPendingFiles([]);
+      invalidateResumes();
+      setCurrentStep(1);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erro ao fazer upload';
+      toast({
+        title: 'Erro no upload',
+        description: message,
+        variant: 'error',
+      });
+    } finally {
+      setUploading(false);
+      analisarInProgressRef.current = false;
+    }
+  };
+
+  const handleFilesSelected = (files: File[]) => {
+    setPendingFiles(files);
+  };
+
+  const removePendingFile = (index: number) => {
+    setPendingFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const clearPendingFiles = () => {
+    setPendingFiles([]);
   };
 
   const mergedResumesForSelection = useMemo(() => {
@@ -287,26 +343,34 @@ function Analysis() {
                 
                 {uploadMode === 'upload' && (
                   <div className="space-y-6">
-                    <div className="">
-                      <h3 className="text-2xl text-neo-secondary">Adicionar currículos</h3>
-                      <p className="text-neo-secondary/70 font-bold text-sm">Arraste os currículos para análise em PDF ou clique para selecionar. Você pode adicionar até 50 currículos no total.</p>
+                    <div className="flex flex-col md:flex-row justify-between md:items-center gap-2">
+                      <div>
+                        <h3 className="text-2xl text-neo-secondary font-black">Adicionar currículos</h3>
+                        <p className="text-neo-secondary/70 font-bold text-sm">Selecione os arquivos PDF. Você pode adicionar até 50 currículos no total.</p>
+                      </div>
+                      
+                      {pendingFiles.length > 0 && (
+                        <button
+                          onClick={handleUploadPendingFiles}
+                          disabled={uploading}
+                          className="cursor-pointer flex items-center gap-2 border-2 border-black bg-neo-blue text-black px-6 py-3 rounded-lg font-bold uppercase tracking-wide transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)] active:translate-y-[2px] active:shadow-none disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                          {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                          {uploading ? 'Processando...' : `Analisar (${pendingFiles.length})`}
+                        </button>
+                      )}
                     </div>
                     
                     <FileInput 
                       label="" 
-                      setIndexId={setIndexId}
-                      onSuccess={() => {
-                        invalidateResumes();
-                        setCurrentStep(1);
-                      }}
+                      setIndexId={(id) => {}}
+                      onSuccess={() => {}}
+                      onFilesChange={handleFilesSelected}
+                      externalFiles={pendingFiles}
+                      onRemoveFile={removePendingFile}
+                      onClearAll={clearPendingFiles}
+                      disableAutoUpload={true}
                     />
-
-                    {uploadedData && (
-                      <div className="flex items-center gap-3 bg-green-100 border-2 border-black text-green-800 p-4 rounded font-bold">
-                        <CheckCircle className="w-5 h-5" />
-                        <span>{uploadedData.indexed_files} arquivo(s) processado(s) com sucesso!</span>
-                      </div>
-                    )}
                   </div>
                 )}
 
