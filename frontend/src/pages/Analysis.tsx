@@ -94,13 +94,14 @@ function Analysis() {
     try {
       const res = await resumeService.getGroupResumes(groupId);
       const ids = (res.resumes ?? []).map((r) => r.resume_id).filter((id) => databaseResumes.some((d) => d.resume_id === id));
+      
+      const groupDetails = resumeGroups.find(g => g.group_id === groupId);
       setSelectedResumes(ids);
     } catch {
       setSelectedResumes([]);
     }
   };
 
-  // Steps removidos para interface mais clean
 
   const handleLocalUpload = async () => {
     if (selectedResumes.length === 0) return;
@@ -116,20 +117,167 @@ function Analysis() {
       const selectedFromLocal = selectedResumes.filter((id) =>
         localResumes.some((r) => r.id === id)
       );
-      const allSelectedAreFromDb = selectedFromLocal.length === 0;
+      
+      const selectedDbResumesDetails = selectedFromDb.map(id => {
+        const resume = databaseResumes.find(r => r.resume_id === id);
+        return resume ? {
+          id: resume.resume_id,
+          name: resume.candidate_name,
+          file: resume.file_name,
+          index: resume.vector_index_id
+        } : null;
+      }).filter(Boolean);
+      
+      const selectedLocalResumesDetails = selectedFromLocal.map(id => {
+        const resume = localResumes.find(r => r.id === id);
+        return resume ? {
+          id: resume.id,
+          name: resume.candidate_name,
+          file: resume.file_name,
+          hasFile: !!resume.file
+        } : null;
+      }).filter(Boolean);
 
-      if (allSelectedAreFromDb && selectedFromDb.length > 0) {
-        const firstDbResume = databaseResumes.find((r) => r.resume_id === selectedFromDb[0]);
-        const indexIdToUse = firstDbResume?.vector_index_id?.trim();
-        if (!indexIdToUse) {
+      // ===== ANÁLISE PRECISA: Baixar e fazer re-upload de currículos do banco =====
+      if (selectedFromDb.length > 0) {
+        const selectedDbResumes = selectedFromDb.map(id => 
+          databaseResumes.find(r => r.resume_id === id)
+        ).filter(Boolean);
+
+        const resumesWithoutIndex = selectedDbResumes.filter(resume => !resume?.vector_index_id?.trim());
+        if (resumesWithoutIndex.length > 0) {
           toast({
             title: 'Erro',
-            description: 'O currículo selecionado não possui índice de análise. Exclua e envie novamente.',
+            description: `${resumesWithoutIndex.length} currículo(s) selecionado(s) não possuem índice. Exclua e envie novamente.`,
             variant: 'error',
           });
           return;
         }
-        setIndexId(indexIdToUse);
+
+        const indexIds = [...new Set(selectedDbResumes.map(r => r?.vector_index_id?.trim()).filter(Boolean))];
+        const resumesWithSameIndex = indexIds.length === 1 
+          ? databaseResumes.filter(r => r.vector_index_id?.trim() === indexIds[0])
+          : [];
+        
+        const isPartialSelection = indexIds.length === 1 && selectedDbResumes.length < resumesWithSameIndex.length;
+    
+
+        if (isPartialSelection || indexIds.length > 1) {
+          toast({
+            title: 'Preparando análise precisa',
+            description: `Baixando ${selectedDbResumes.length} currículo(s) para garantir análise exata...`,
+            variant: 'default',
+          });
+
+          try {
+            const downloadedFiles: File[] = [];
+            const downloadTimestamp = Date.now();
+            
+            for (let i = 0; i < selectedDbResumes.length; i++) {
+              const resume = selectedDbResumes[i];
+              if (!resume) continue;
+              
+              const response = await fetch(`${API_URL}/api/v1/resumes/${resume.resume_id}/download`, {
+                headers: {
+                  'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                },
+              });
+              
+              if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`❌ Erro detalhado do servidor:`, {
+                  resumeId: resume.resume_id,
+                  status: response.status,
+                  errorText,
+                  url: response.url
+                });
+                throw new Error(`Falha ao baixar ${resume.file_name}: ${response.status} - ${errorText}`);
+              }
+              
+              const blob = await response.blob();
+              
+              const baseName = resume.file_name.replace('.pdf', '');
+              const uniqueFileName = `${baseName}_analise_${downloadTimestamp}_${i + 1}.pdf`;
+              
+              const file = new File([blob], uniqueFileName, { type: 'application/pdf' });
+              downloadedFiles.push(file);
+            }
+
+            for (const resumeId of selectedFromLocal) {
+              const localResume = localResumes.find((r) => r.id === resumeId);
+              if (localResume?.file) downloadedFiles.push(localResume.file);
+            }
+
+            toast({
+              title: 'Criando índice exclusivo',
+              description: `Fazendo upload de ${downloadedFiles.length} currículo(s)...`,
+              variant: 'default',
+            });
+
+            try {
+              const data = await resumeService.uploadResumes(downloadedFiles);
+              
+              setIndexId(data.vector_index_id);
+              
+              toast({
+                title: 'Análise precisa configurada!',
+                description: `Apenas os ${selectedResumes.length} currículos selecionados serão analisados.`,
+                variant: 'success',
+              });
+
+              if (user?.id) {
+                try {
+                  const session = await chatService.createSession({
+                    user_id: user.id,
+                    title: `Análise de currículos (${selectedResumes.length})`,
+                  });
+                  setSessionIdFromAnalisar(session.session_id);
+                } catch (e) {
+                  console.error("Erro ao criar sessão de chat:", e);
+                }
+              }
+              
+              setCurrentStep(1);
+              setSelectedResumes([]);
+              return;
+              
+            } catch (uploadError: any) {
+              console.error('❌ ERRO NO RE-UPLOAD:', {
+                error: uploadError,
+                message: uploadError?.message,
+                response: uploadError?.response,
+                data: uploadError?.response?.data
+              });
+              
+              let errorMessage = uploadError?.message || 'Erro ao fazer upload dos currículos';
+              
+              if (errorMessage.includes('Já existe um currículo com o nome')) {
+                errorMessage = 'Erro: Conflito de nomes de arquivo. Tente excluir os currículos existentes antes de fazer a análise ou use a opção "Fazer Upload" com arquivos novos.';
+              } else if (errorMessage.includes('Limite máximo')) {
+                errorMessage = 'Limite de 50 currículos atingido. Exclua alguns currículos antes de continuar.';
+              }
+              
+              toast({
+                title: 'Erro ao preparar análise precisa',
+                description: errorMessage,
+                variant: 'error',
+              });
+              return;
+            }
+            
+          } catch (downloadError) {
+            const message = downloadError instanceof Error ? downloadError.message : 'Erro ao preparar currículos';
+            toast({
+              title: 'Erro ao preparar análise precisa',
+              description: message,
+              variant: 'error',
+            });
+            return;
+          }
+        }
+
+        setIndexId(indexIds[0]);
+        
         if (user?.id) {
           try {
             const session = await chatService.createSession({
@@ -141,6 +289,7 @@ function Analysis() {
             console.error("Erro ao criar sessão de chat:", e);
           }
         }
+        
         setCurrentStep(1);
         setSelectedResumes([]);
         return;
@@ -155,14 +304,16 @@ function Analysis() {
       if (filesToUpload.length === 0) {
         toast({
           title: 'Erro',
-          description: 'Nenhum arquivo válido para envio. Selecione currículos com arquivo anexado.',
+          description: 'Nenhum arquivo válido para envio.',
           variant: 'error',
         });
         return;
       }
 
       const data = await resumeService.uploadResumes(filesToUpload);
+      
       setIndexId(data.vector_index_id);
+      
       if (user?.id) {
         try {
           const session = await chatService.createSession({
@@ -174,8 +325,10 @@ function Analysis() {
           console.error("Erro ao criar sessão de chat:", e);
         }
       }
+      
       setCurrentStep(1);
       setSelectedResumes([]);
+      
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erro ao iniciar análise';
       toast({
@@ -190,9 +343,11 @@ function Analysis() {
   };
 
   const toggleResumeSelection = (resumeId: string) => {
-    setSelectedResumes(prev => 
-      prev.includes(resumeId) ? prev.filter(id => id !== resumeId) : [...prev, resumeId]
-    );
+    setSelectedResumes(prev => {
+      const newSelection = prev.includes(resumeId) ? prev.filter(id => id !== resumeId) : [...prev, resumeId];
+      
+      return newSelection;
+    });
   };
 
   const handleBack = () => {
@@ -209,7 +364,9 @@ function Analysis() {
 
     try {
       setUploading(true);
+      
       const data = await resumeService.uploadResumes(pendingFiles);
+      
       setIndexId(data.vector_index_id);
       
       if (user?.id) {
@@ -276,6 +433,58 @@ function Analysis() {
         r.file_name.toLowerCase().includes(q)
     );
   }, [mergedResumesForSelection, resumeSearchQuery]);
+
+  const selectionCompatibility = useMemo(() => {
+    if (selectedResumes.length === 0) return { canAnalyze: false, message: '' };
+    
+    const selectedDbResumes = selectedResumes
+      .map(id => databaseResumes.find(r => r.resume_id === id))
+      .filter(Boolean);
+    
+    const selectedLocalResumes = selectedResumes
+      .map(id => localResumes.find(r => r.id === id))
+      .filter(Boolean);
+    
+    if (selectedLocalResumes.length > 0) {
+      return { 
+        canAnalyze: true, 
+        message: `${selectedResumes.length} selecionado(s) - Novo índice será criado`
+      };
+    }
+    
+    if (selectedDbResumes.length > 0) {
+      const indexIds = [...new Set(selectedDbResumes.map(r => r?.vector_index_id?.trim()).filter(Boolean))];
+      
+      if (indexIds.length === 0) {
+        return { 
+          canAnalyze: false, 
+          message: `${selectedResumes.length} selecionado(s) - Currículos sem índice`
+        };
+      } else if (indexIds.length === 1) {
+        const commonIndexId = indexIds[0];
+        const resumesWithSameIndex = databaseResumes.filter(r => r.vector_index_id?.trim() === commonIndexId);
+        
+        if (selectedDbResumes.length === resumesWithSameIndex.length) {
+          return { 
+            canAnalyze: true, 
+            message: `✓ ${selectedResumes.length} selecionado(s) - Análise direta`
+          };
+        } else {
+          return { 
+            canAnalyze: true, 
+            message: `✓ ${selectedResumes.length} selecionado(s) - Análise precisa ativada`
+          };
+        }
+      } else {
+        return { 
+          canAnalyze: true, 
+          message: `✓ ${selectedResumes.length} selecionado(s) - Análise precisa ativada`
+        };
+      }
+    }
+    
+    return { canAnalyze: false, message: '' };
+  }, [selectedResumes, databaseResumes, localResumes]);
 
   return (
     <ChatProvider indexId={indexId}>
@@ -383,14 +592,28 @@ function Analysis() {
                       </div>
                       
                       {selectedResumes.length > 2 && (
-                        <button
-                          onClick={handleLocalUpload}
-                          disabled={uploading}
-                          className="cursor-pointer flex items-center gap-2 border-2 border-black bg-neo-blue text-black px-6 py-3 rounded-lg font-bold uppercase tracking-wide transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)] active:translate-y-[2px] active:shadow-none disabled:opacity-70 disabled:cursor-not-allowed"
-                        >
-                          {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-                          {uploading ? 'Processando...' : `Analisar (${selectedResumes.length})`}
-                        </button>
+                        <div className="flex flex-col items-end gap-1">
+                          <button
+                            onClick={handleLocalUpload}
+                            disabled={uploading || !selectionCompatibility.canAnalyze}
+                            className={cn(
+                              "cursor-pointer flex items-center gap-2 border-2 border-black px-6 py-3 rounded-lg font-bold uppercase tracking-wide transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)] active:translate-y-[2px] active:shadow-none",
+                              selectionCompatibility.canAnalyze && !uploading
+                                ? "bg-neo-blue text-black hover:bg-blue-200" 
+                                : "bg-gray-200 text-gray-500 cursor-not-allowed opacity-70"
+                            )}
+                            title={!selectionCompatibility.canAnalyze ? "Seleção incompatível para análise" : ""}
+                          >
+                            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                            {uploading ? 'Processando...' : `Analisar (${selectedResumes.length})`}
+                          </button>
+                          <span className={cn(
+                            "text-xs font-medium",
+                            selectionCompatibility.canAnalyze ? "text-green-600" : "text-red-500"
+                          )}>
+                            {selectionCompatibility.message}
+                          </span>
+                        </div>
                       )}
                     </div>
 
@@ -524,10 +747,15 @@ function Analysis() {
                         </div>
                         
                         {!selectedGroupId && selectedResumes.length > 0 && (
-                          <p className="text-[11px] text-green-700 mt-2 font-bold flex items-center gap-1">
-                            <CheckCircle className="w-3 h-3" />
-                            {selectedResumes.length} selecionado{selectedResumes.length !== 1 ? 's' : ''} manualmente
-                          </p>
+                          <div className="mt-2 space-y-1">
+                            <p className="text-[11px] text-green-700 font-bold flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3" />
+                              {selectedResumes.length} selecionado{selectedResumes.length !== 1 ? 's' : ''} manualmente
+                            </p>
+                            <p className="text-[10px] text-green-700 font-medium bg-green-50 px-2 py-1 rounded border border-green-200">
+                              ✓ Sistema de análise precisa: Apenas os currículos selecionados serão analisados
+                            </p>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -590,31 +818,41 @@ function Analysis() {
                     )}
                     
                     <div className="flex justify-end">
-                      <button
-                        onClick={handleLocalUpload}
-                        disabled={uploading || selectedResumes.length < 2}
-                        className={cn(
-                          "cursor-pointer flex items-center gap-2 border-2 border-black px-4 py-2 rounded-lg font-bold text-sm uppercase tracking-wide transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)] active:translate-y-[2px] active:shadow-none",
-                          selectedResumes.length >= 2 && !uploading
-                            ? "bg-neo-blue text-black hover:bg-blue-200"
-                            : "bg-gray-200 text-gray-400 cursor-not-allowed opacity-50"
+                      <div className="flex flex-col items-end gap-1">
+                        <button
+                          onClick={handleLocalUpload}
+                          disabled={uploading || selectedResumes.length < 2 || !selectionCompatibility.canAnalyze}
+                          className={cn(
+                            "cursor-pointer flex items-center gap-2 border-2 border-black px-4 py-2 rounded-lg font-bold text-sm uppercase tracking-wide transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)] active:translate-y-[2px] active:shadow-none",
+                            selectedResumes.length >= 2 && !uploading && selectionCompatibility.canAnalyze
+                              ? "bg-neo-blue text-black hover:bg-blue-200"
+                              : "bg-gray-200 text-gray-400 cursor-not-allowed opacity-50"
+                          )}
+                        >
+                          {uploading ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              Processando...
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-3.5 h-3.5" />
+                              {selectedResumes.length >= 2 
+                                ? `Analisar (${selectedResumes.length})` 
+                                : `Selecione pelo menos 2`
+                              }
+                            </>
+                          )}
+                        </button>
+                        {selectedResumes.length >= 2 && (
+                          <span className={cn(
+                            "text-xs font-medium",
+                            selectionCompatibility.canAnalyze ? "text-green-600" : "text-red-500"
+                          )}>
+                            {selectionCompatibility.message}
+                          </span>
                         )}
-                      >
-                        {uploading ? (
-                          <>
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            Processando...
-                          </>
-                        ) : (
-                          <>
-                            <Play className="w-3.5 h-3.5" />
-                            {selectedResumes.length >= 2 
-                              ? `Analisar (${selectedResumes.length})` 
-                              : `Selecione pelo menos 2`
-                            }
-                          </>
-                        )}
-                      </button>
+                      </div>
                     </div>
                   </div>
                 )}

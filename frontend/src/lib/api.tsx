@@ -176,7 +176,9 @@ class ResumeService {
   async uploadResumes(files: File[]): Promise<UploadResumeResponse> {
     const formData = new FormData();
     
-    files.forEach((file) => {
+    console.log('🔧 Preparando upload de', files.length, 'arquivos');
+    files.forEach((file, index) => {
+      console.log(`   ${index + 1}. ${file.name} (${(file.size / 1024).toFixed(1)}KB, ${file.type})`);
       formData.append('files', file);
     });
 
@@ -190,7 +192,21 @@ class ResumeService {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
+      const errorText = await response.text();
+      console.error('❌ ERRO NO UPLOAD - Resposta do servidor:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorText,
+        url: response.url
+      });
+      
+      let error;
+      try {
+        error = JSON.parse(errorText);
+      } catch {
+        error = { detail: errorText };
+      }
+      
       const msg = error.message ?? (typeof error.detail === 'string' ? error.detail : Array.isArray(error.detail) ? error.detail[0]?.msg ?? error.detail[0] : undefined) ?? 'Falha ao enviar currículos';
       throw new Error(msg);
     }
@@ -270,7 +286,14 @@ class ResumeService {
     });
 
     if (!response.ok) {
-      const error = await response.json();
+      // Se for erro de autenticação (401), limpar token e redirecionar
+      if (response.status === 401) {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+        throw new Error('Sessão expirada. Por favor, faça login novamente.');
+      }
+      
+      const error = await response.json().catch(() => ({ detail: 'Failed to list resumes' }));
       throw new Error(error.detail || 'Failed to list resumes');
     }
 
