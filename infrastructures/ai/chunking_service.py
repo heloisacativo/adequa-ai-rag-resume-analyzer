@@ -17,7 +17,7 @@ class SmartChunker(ChunkerProtocol):
     chunk_size: int = 512
     chunk_overlap: int = 50
     use_semantic: bool = True
-    embed_model: Any = None  # Aceita qualquer embedding
+    embed_model: Any = None  
     
     def __post_init__(self):
         if self.use_semantic and not self.embed_model:
@@ -42,27 +42,21 @@ class SmartChunker(ChunkerProtocol):
         
         nodes = []
         for original_doc in documents:
-            # Trabalhamos com uma variável local 'doc'
             doc = original_doc
 
-            # --- LIMPEZA DE EMOJIS ---
-            # Se tiver texto, limpamos e criamos uma NOVA instância para evitar AttributeError
             if doc.text:
                 clean_text = self._remove_emojis(doc.text)
-                # Recriamos o objeto Documento para garantir que não estamos infringindo imutabilidade
                 doc = Document(
                     text=clean_text,
                     metadata=original_doc.metadata or {}
                 )
             
-            # Resume-specific chunking
             if self._is_resume_doc(doc):
                 chunked = self._chunk_by_sections(doc, splitter)
             else:
                 chunked = splitter.get_nodes_from_documents([doc])
             
             for chunk in chunked:
-                # Garante que metadados persistam nos chunks
                 chunk.metadata.update(doc.metadata)
             
             nodes.extend(chunked)
@@ -76,21 +70,19 @@ class SmartChunker(ChunkerProtocol):
         """
         emoji_pattern = re.compile(
             "["
-            "\U0001f600-\U0001f64f"  # Emoticons
-            "\U0001f300-\U0001f5ff"  # Symbols & Pictographs
-            "\U0001f680-\U0001f6ff"  # Transport & Map Symbols
-            "\U0001f1e0-\U0001f1ff"  # Flags
-            "\u2700-\u27bf"          # Dingbats
-            "\u2600-\u26ff"          # Miscellaneous Symbols
-            "\U0001f900-\U0001f9ff"  # Supplemental Symbols
-            "\uFE0F"                 # Variation Selectors
+            "\U0001f600-\U0001f64f" 
+            "\U0001f300-\U0001f5ff"  
+            "\U0001f680-\U0001f6ff"  
+            "\U0001f1e0-\U0001f1ff" 
+            "\u2700-\u27bf"        
+            "\u2600-\u26ff"         
+            "\U0001f900-\U0001f9ff" 
             "]+", flags=re.UNICODE
         )
         return emoji_pattern.sub("", text)
 
     def _is_resume_doc(self, doc: Document) -> bool:
         """Check if document is a resume"""
-        # Verificação segura de metadados
         meta = doc.metadata or {}
         return meta.get("file_type") == "pdf" or "resume" in meta
     

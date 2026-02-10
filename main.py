@@ -3,12 +3,10 @@ import json
 import warnings
 from dotenv import load_dotenv
 
-# Suprimir warnings específicos que não afetam funcionalidade
 warnings.filterwarnings("ignore", message=".*validate_default.*")
 warnings.filterwarnings("ignore", message=".*TRANSFORMERS_CACHE.*")
 
-load_dotenv()  # Adicione esta linha logo no início do arquivo
-
+load_dotenv() 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -63,7 +61,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """
     logger.info("Starting application...")
 
-    # Exibir onde o banco de dados está rodando (terminal + log)
     try:
         db_settings = DatabaseSettings()
         db_display = db_settings.database_display()
@@ -73,7 +70,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     except Exception as e:
         logger.warning(f"Could not resolve database display: {e}")
     
-    # ⭐ NOVO: Validar e inicializar serviços de IA
     try:
         logger.info("Validating AI configuration...")
         ai_config_valid = validate_ai_config()
@@ -86,7 +82,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             logger.info("Initializing AI services...")
             llm, embed_model = setup_ai_services()
         
-        # Salvar instâncias no estado da app (pode ser None)
         app.state.llm = llm
         app.state.embed_model = embed_model
         
@@ -109,9 +104,9 @@ def create_app() -> FastAPI:
         FastAPI: The configured FastAPI application instance.
     """
     app = FastAPI(
-        title="HR System with AI",  # ⭐ Atualizado
+        title="HR System with AI", 
         version="1.0.0",
-        description="Sistema de RH com análise de currículos por IA",  # ⭐ Atualizado
+        description="Sistema de RH com análise de currículos por IA", 
         lifespan=lifespan,
         docs_url="/api/docs",
         redoc_url="/api/redoc",
@@ -134,7 +129,6 @@ def create_app() -> FastAPI:
     setup_exception_handlers(app)
     app.include_router(api_v1_router, prefix="/api/v1")
     
-    # ⭐ NOVO: Adicionar endpoint de health check com informações de IA
     @app.get("/health", tags=["Health"])
     async def health_check():
         """Health check endpoint com informações do sistema de IA"""

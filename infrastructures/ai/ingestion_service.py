@@ -70,8 +70,6 @@ class DocumentIngestor(IngestionProtocol):
         if not pdf_dir.exists():
             return []
         
-        # --- CORREÇÃO AQUI ---
-        # Usamos file_extractor para forçar o uso do PyMuPDF
         reader = SimpleDirectoryReader(
             input_dir=str(pdf_dir),
             required_exts=[".pdf"],
@@ -87,7 +85,6 @@ class DocumentIngestor(IngestionProtocol):
         
         return docs
     
-    # ... (Métodos _ingest_docx, _ingest_json, _ingest_csv, _ingest_markdown mantidos iguais)
     
     def _ingest_docx(self) -> list[Document]:
         """Load DOCX files"""
@@ -187,7 +184,6 @@ class DocumentIngestor(IngestionProtocol):
         return documents
 
     def _load_pdf(self, file_path: Path) -> list[Document]:
-        # --- CORREÇÃO AQUI TAMBÉM ---
         reader = SimpleDirectoryReader(
             input_files=[str(file_path)],
             file_extractor={".pdf": PyMuPDFReader()}
@@ -198,7 +194,6 @@ class DocumentIngestor(IngestionProtocol):
             self._extract_resume_metadata(doc)
         return docs
     
-    # ... (Métodos restantes _load_docx, _load_json, etc mantidos iguais)
     
     def _load_docx(self, file_path: Path) -> list[Document]:
         docx_reader = DocxReader()
@@ -240,9 +235,6 @@ class DocumentIngestor(IngestionProtocol):
         try:
             from PIL import Image
             import pytesseract
-            
-            # Ajuste o caminho conforme seu SO. Se for Linux/Docker, comente essa linha.
-            # pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
             
             img = Image.open(file_path)
             text = pytesseract.image_to_string(img, lang='por')

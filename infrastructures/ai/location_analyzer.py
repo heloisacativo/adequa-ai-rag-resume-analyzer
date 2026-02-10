@@ -24,10 +24,8 @@ class LocationAnalyzer(LocationAnalyzerProtocol):
         Analisa a compatibilidade geográfica entre vaga e candidato.
         Considera se a vaga é remota ou tem localização específica.
         """
-        # Modelo LLM para análise
         llm_model = self.llm
         
-        # Primeiro, analisar se a vaga é remota ou tem localização específica
         job_prompt = f"""
 ANÁLISE CRÍTICA DA VAGA - Determine se é REMOTA ou PRESENCIAL.
 
@@ -74,9 +72,7 @@ LOCALIZAÇÃO_VAGA: [cidade/estado exato ou "Não especificado"]
             
             print(f"[DEBUG LOCATION] Parsed job_type: {job_type}, job_location: {job_location}")
             
-            # Fallback: se não conseguiu extrair localização mas a descrição contém indícios de presencial
             if not job_location and job_type == "PRESENCIAL":
-                # Tentar extrair localização diretamente da descrição da vaga
                 job_desc_lower = job_description.lower()
                 if "são paulo" in job_desc_lower:
                     job_location = "São Paulo"
@@ -99,18 +95,16 @@ LOCALIZAÇÃO_VAGA: [cidade/estado exato ou "Não especificado"]
                 elif "manaus" in job_desc_lower:
                     job_location = "Manaus"
             
-            # Se a vaga é remota, sempre compatível
             if job_type == "REMOTA":
                 return LocationAnalysis(
                     has_location_requirement=False,
                     job_location=None,
-                    candidate_location=None,  # Não precisa extrair do candidato
+                    candidate_location=None,  
                     is_location_match=True,
-                    willing_to_relocate=True,  # Irrelevante para remoto
+                    willing_to_relocate=True,  
                     match_status="REMOTE"
                 )
             
-            # Se a vaga é presencial, analisar localização do candidato
             candidate_prompt = f"""
 Analise este currículo COMPLETAMENTE e extraia informações sobre a localização geográfica do candidato.
 
@@ -136,7 +130,6 @@ DISPOSIÇÃO_MUDANÇA: [SIM ou NAO]
             print(f"[DEBUG LOCATION] Candidate prompt: {candidate_prompt[:200]}...")
             print(f"[DEBUG LOCATION] Candidate response: {candidate_response_text}")
             
-            # Parse da resposta do candidato
             candidate_lines = candidate_response_text.split('\n')
             candidate_location = None
             willing_to_relocate = False
@@ -153,43 +146,34 @@ DISPOSIÇÃO_MUDANÇA: [SIM ou NAO]
             
             print(f"[DEBUG LOCATION] Parsed candidate_location: {candidate_location}, willing_to_relocate: {willing_to_relocate}")
             
-            # Determinar compatibilidade
             is_location_match = False
             match_status = "NO_MATCH"
             
             if willing_to_relocate:
-                # Candidato disposto a mudança = sempre compatível
                 is_location_match = True
                 match_status = "WILL_RELOCATE"
             elif candidate_location and job_location:
-                # Comparar localizações com lógica mais robusta
                 candidate_lower = candidate_location.lower().strip()
                 job_lower = job_location.lower().strip()
                 
-                # Remove pontuação e normaliza
                 import re
                 candidate_clean = re.sub(r'[^\w\s]', '', candidate_lower)
                 job_clean = re.sub(r'[^\w\s]', '', job_lower)
                 
-                # Verificar se as localizações são similares
                 candidate_words = set(candidate_clean.split())
                 job_words = set(job_clean.split())
                 
-                # Interseção de palavras-chave importantes (cidades, estados)
                 common_words = candidate_words.intersection(job_words)
                 
-                # Se há pelo menos uma palavra em comum (cidade/estado), considerar match
                 if common_words:
                     is_location_match = True
                     match_status = "LOCATION_MATCH"
                 else:
                     match_status = "DIFFERENT_LOCATIONS"
             elif not job_location:
-                # Vaga sem localização específica = compatível
                 is_location_match = True
                 match_status = "NO_SPECIFIC_LOCATION"
             else:
-                # Candidato sem localização informada
                 match_status = "CANDIDATE_LOCATION_UNKNOWN"
             
             return LocationAnalysis(
@@ -202,7 +186,6 @@ DISPOSIÇÃO_MUDANÇA: [SIM ou NAO]
             )
             
         except Exception as e:
-            # Em caso de erro, assumir remoto (mais permissivo)
             return LocationAnalysis(
                 has_location_requirement=False,
                 job_location=None,

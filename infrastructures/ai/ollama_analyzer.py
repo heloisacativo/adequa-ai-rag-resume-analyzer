@@ -28,7 +28,6 @@ class OllamaAnalyzer(AIAnalyzerProtocol):
         print(f"DEBUG: Resume text sample: {texto_completo[:1000]}...")
         print(f"DEBUG: Job description: {job_description}")
         
-        # Verificar se a descrição da vaga é suficiente
         job_description_words = job_description.strip().split()
         if len(job_description_words) < 3 or job_description.lower().strip() in ['teste', 'test', 'abc', 'exemplo', 'sample']:
             return CandidateAnalysisDTO(
@@ -79,7 +78,6 @@ As "dicas_de_melhoria" devem ser sugestões objetivas e acionáveis para o candi
         import json
         
         try:
-            # Tentar fazer parse do JSON
             json_start = text.find('{')
             json_end = text.rfind('}') + 1
             if json_start != -1 and json_end > json_start:
@@ -99,7 +97,6 @@ As "dicas_de_melhoria" devem ser sugestões objetivas e acionáveis para o candi
         except (json.JSONDecodeError, KeyError, TypeError):
             pass
         
-        # Fallback para parsing de texto se JSON falhar
         lines = text.split('\n')
         
         nome = "Desconhecido"
