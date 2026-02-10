@@ -33,11 +33,9 @@ class AnalyzeCandidatesUseCase:
         print(f"[DEBUG] Iniciando análise com index_id: {index_id}")
         print(f"[DEBUG] Query: {query}")
         
-        # Gera hash da vaga para análises consistentes
         vaga_hash = hashlib.md5(query.lower().strip().encode()).hexdigest()[:8]
         print(f"[DEBUG] Hash da vaga para consistência: {vaga_hash}")
         
-        # Carrega o índice
         try:
             index = await self.indexer.load_index(index_id)
             print(f"[DEBUG] Índice carregado com sucesso")
@@ -50,31 +48,26 @@ class AnalyzeCandidatesUseCase:
                 ranking=[]
             )
         
-        # Modelo LLM - Inicialização robusta com teste de conectividade
         llm_model = None
         try:
             from llama_index.llms.groq import Groq
             import os
             
-            # Verifica se GROQ_API_KEY existe e não está vazia
             groq_api_key = os.getenv("GROQ_API_KEY")
             if not groq_api_key or groq_api_key.strip() == "":
                 raise ValueError("GROQ_API_KEY não encontrada ou está vazia nas variáveis de ambiente")
             
             print(f"[DEBUG] Utilizando GROQ_API_KEY: {groq_api_key[:8]}...")
             
-            # Cria instância do LLM sempre nova para evitar problemas de contexto
-            # Configuração otimizada para MÁXIMA CONSISTÊNCIA
             llm_model = Groq(
                 model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
                 api_key=groq_api_key,
-                temperature=0.05,  # Ainda mais baixo para máxima consistência
+                temperature=0.05,  # Ainda mais baixo para máxima consistênci
                 max_tokens=1500,
-                top_p=0.85,       # Mais restritivo
-                frequency_penalty=0.2,  # Maior para evitar repetições de erros
+                top_p=0.85,       
+                frequency_penalty=0.2,  
             )
             
-            # Testa conectividade com uma pergunta simples
             try:
                 test_response = await llm_model.acomplete("Responda apenas: OK")
                 print(f"[DEBUG] Teste de conectividade LLM: {str(test_response)[:50]}")
@@ -228,11 +221,9 @@ EXEMPLO DE ANALISE CORRETA:
                 response_text = str(response)
                 print(f"[DEBUG] Resposta recebida do LLM: {response_text[:100]}...")
                 
-                # VALIDAÇÃO AUTOMÁTICA: Corrige erros de escolaridade na resposta
                 if ("graduação" in response_text.lower() or "engenharia" in response_text.lower() or 
                     "sistemas" in response_text.lower() or "curso superior" in response_text.lower()):
                     
-                    # Detecta e corrige erro comum de escolaridade
                     error_patterns = [
                         "não atende ao requisito de ensino fundamental ou médio completo (está cursando",
                         "não tem ensino médio (está cursando",
@@ -243,14 +234,12 @@ EXEMPLO DE ANALISE CORRETA:
                     for pattern in error_patterns:
                         if pattern in response_text.lower():
                             print(f"[WARNING] Detectado erro de escolaridade, corrigindo automaticamente!")
-                            # Substitui o erro pela versão correta
                             response_text = response_text.replace(
                                 pattern.split("(")[0],
                                 "ATENDE ao requisito de escolaridade"
                             )
                             break
                 
-                # Parse da resposta estruturada
                 resultado = {
                     "arquivo": file_name,
                     "nome_candidato": "Extraindo...",
@@ -261,7 +250,6 @@ EXEMPLO DE ANALISE CORRETA:
                     "location_analysis": location_analysis
                 }
                 
-                # Tentativa de extrair dados estruturados
                 lines = response_text.split('\n')
                 for line in lines:
                     line_upper = line.upper()
@@ -313,11 +301,10 @@ EXEMPLO DE ANALISE CORRETA:
                         location_analysis=location_analysis
                     )
                 else:
-                    # Outros erros
                     resultado_erro = CandidateResultDTO(
                         arquivo=file_name,
                         nome_candidato=file_name.replace('.pdf', '').replace('-', ' ').title(),
-                        score=40,  # Score baixo para erros desconhecidos
+                        score=40,  
                         pontos_fortes=[],
                         pontos_fracos=["Erro no processamento"],
                         justificativa=f"Erro ao processar: {str(e)}",
@@ -326,36 +313,51 @@ EXEMPLO DE ANALISE CORRETA:
                 
                 resultados.append(resultado_erro)
 
-        # 4. Ordena por score (inclui candidatos com erro para debug)
+        # 4. Ordena por score com critérios de desempate
+        def get_location_priority(resultado):
+            """Retorna prioridade de localização (maior = melhor)"""
+            if not resultado.location_analysis:
+                return 0
+            status = resultado.location_analysis.match_status
+            priority_map = {
+                "LOCATION_MATCH": 5,      
+                "REMOTE": 4,              
+                "WILL_RELOCATE": 3,       
+                "NO_SPECIFIC_LOCATION": 2, 
+                "CANDIDATE_LOCATION_UNKNOWN": 1, 
+                "LOCATION_MISMATCH": 0    
+            }
+            return priority_map.get(status, 0)
+        
         resultados_ordenados = sorted(
-            resultados,  # Inclui TODOS os candidatos, mesmo com erro
-            key=lambda x: x.score, 
+            resultados, 
+            key=lambda x: (
+                x.score,                    # 1º critério: score
+                get_location_priority(x),   # 2º critério: prioridade de localização
+                -len(x.pontos_fortes) if x.pontos_fortes else 0,  # 3º critério: quantidade de pontos fortes
+                x.nome_candidato.lower()    # 4º critério: ordem alfabética (desempate final)
+            ), 
             reverse=True
         )
         
-        # Log de consistencia para debug
         print(f"[CONSISTENCIA] Vaga Hash: {vaga_hash}")
         print(f"[CONSISTENCIA] Notas finais: {[r.score for r in resultados_ordenados]}")
         
-        # Verifica se ha variacoes extremas suspeitas
         if len(resultados_ordenados) > 1:
             scores = [r.score for r in resultados_ordenados]
             score_range = max(scores) - min(scores)
-            if score_range > 80:  # Variacao muito grande pode indicar inconsistencia
+            if score_range > 80:
                 print(f"[WARNING] Variacao de notas muito alta ({score_range} pontos) - verifique consistencia")
         
-        # Separa candidatos válidos dos que tiveram erro de localização (score 0 por localização)
         candidatos_validos = [r for r in resultados_ordenados if r.score > 0]
         candidatos_descartados = [r for r in resultados_ordenados if r.score == 0]
 
         # 5. Monta resposta textual para o frontend
         if resultados_ordenados:
-            # Define critério de qualidade mínima
             NOTA_MINIMA_RECOMENDACAO = 60
             candidatos_adequados = [r for r in resultados_ordenados if r.score >= NOTA_MINIMA_RECOMENDACAO]
             candidatos_inadequados = [r for r in resultados_ordenados if r.score < NOTA_MINIMA_RECOMENDACAO]
             
-            # Verifica se há erros de API
             candidatos_com_erro_api = [r for r in resultados_ordenados if "401 Unauthorized" in r.justificativa or "Erro de autenticação" in r.justificativa]
             
             if candidatos_com_erro_api:
@@ -375,13 +377,11 @@ EXEMPLO DE ANALISE CORRETA:
                 )
                 
             elif candidatos_adequados:
-                # Há candidatos com nota adequada - recomendar o melhor
                 melhor = candidatos_adequados[0]
                 resposta_texto = (
                     f"CANDIDATO RECOMENDADO: {melhor.nome_candidato} ({melhor.arquivo})\n\n"
                     f"NOTA: {melhor.score}/100"
                 )
-                # Adiciona informação de localização se disponível
                 if melhor.location_analysis:
                     loc = melhor.location_analysis
                     resposta_texto += f"\nLOCALIZAÇÃO: {loc.match_status}"
@@ -403,7 +403,6 @@ EXEMPLO DE ANALISE CORRETA:
                     f"CANDIDATOS ADEQUADOS (Nota ≥ {NOTA_MINIMA_RECOMENDACAO}):"
                 )
                 
-                # Lista apenas candidatos adequados
                 for idx, r in enumerate(candidatos_adequados, 1):
                     loc_info = ""
                     if r.location_analysis:
@@ -422,7 +421,6 @@ EXEMPLO DE ANALISE CORRETA:
                     qualidade = "EXCELENTE" if r.score >= 85 else "MUITO BOM" if r.score >= 75 else "BOM"
                     resposta_texto += f"\n{idx}. {r.nome_candidato} - {r.score}/100 [{qualidade}]{loc_info}"
                 
-                # Comparação entre os melhores (máximo 3 candidatos adequados)
                 if len(candidatos_adequados) > 1:
                     resposta_texto += "\n\nCOMPARAÇÃO ENTRE OS MELHORES:"
                     top_candidatos = candidatos_adequados[:3]  # Máximo 3 melhores
@@ -431,7 +429,6 @@ EXEMPLO DE ANALISE CORRETA:
                         posicao = "1º LUGAR" if idx == 1 else "2º LUGAR" if idx == 2 else "3º LUGAR"
                         resposta_texto += f"\n{posicao}: {candidato.nome_candidato} ({candidato.score}/100)"
                         
-                        # Adiciona diferencial do candidato
                         if "PONTOS FORTES:" in candidato.justificativa:
                             fortes_inicio = candidato.justificativa.find("PONTOS FORTES:") + 14
                             fortes_fim = candidato.justificativa.find("PONTOS FRACOS:")
@@ -439,16 +436,41 @@ EXEMPLO DE ANALISE CORRETA:
                                 pontos_fortes = candidato.justificativa[fortes_inicio:fortes_fim].strip()
                                 resposta_texto += f"\n   → Principais fortes: {pontos_fortes[:80]}..."
                     
-                    # Explicação da diferença entre 1º e 2º lugar
                     if len(candidatos_adequados) >= 2:
                         primeiro = candidatos_adequados[0]
                         segundo = candidatos_adequados[1]
                         diferenca = primeiro.score - segundo.score
                         resposta_texto += f"\n\nPOR QUE {primeiro.nome_candidato} É A MELHOR OPÇÃO:"
-                        resposta_texto += f"\n• Diferença de {diferenca} pontos na avaliação"
-                        resposta_texto += f"\n• Score: {primeiro.score}/100 vs {segundo.score}/100"
+                        
+                        if diferenca > 0:
+                            resposta_texto += f"\n• Diferença de {diferenca} pontos na avaliação"
+                            resposta_texto += f"\n• Score: {primeiro.score}/100 vs {segundo.score}/100"
+                        else:
+                            resposta_texto += f"\n• Score empatado: {primeiro.score}/100 (ambos)"
+                            resposta_texto += f"\n• Critério de desempate aplicado:"
+                            
+                            if primeiro.location_analysis and segundo.location_analysis:
+                                loc1 = primeiro.location_analysis.match_status
+                                loc2 = segundo.location_analysis.match_status
+                                if loc1 != loc2:
+                                    loc_map = {
+                                        "LOCATION_MATCH": "Localização compatível",
+                                        "REMOTE": "Vaga remota",
+                                        "WILL_RELOCATE": "Disposto a mudança",
+                                        "NO_SPECIFIC_LOCATION": "Sem localização específica",
+                                        "CANDIDATE_LOCATION_UNKNOWN": "Localização não informada"
+                                    }
+                                    resposta_texto += f"\n  → Localização: {loc_map.get(loc1, loc1)} vs {loc_map.get(loc2, loc2)}"
+                            
+                            fortes1 = len(primeiro.pontos_fortes) if primeiro.pontos_fortes else 0
+                            fortes2 = len(segundo.pontos_fortes) if segundo.pontos_fortes else 0
+                            if fortes1 != fortes2:
+                                resposta_texto += f"\n  → Pontos fortes: {fortes1} vs {fortes2}"
+                            
+                            if fortes1 == fortes2 and (not primeiro.location_analysis or not segundo.location_analysis or 
+                                                       primeiro.location_analysis.match_status == segundo.location_analysis.match_status):
+                                resposta_texto += f"\n  → Ordem alfabética (critério final de desempate)"
                 
-                # Seção de candidatos inadequados (se houver)
                 if candidatos_inadequados:
                     resposta_texto += f"\n\nCANDIDATOS COM BAIXO MATCH (Nota < {NOTA_MINIMA_RECOMENDACAO}):"
                     for r in candidatos_inadequados[:5]:  # Máximo 5 para não poluir
@@ -460,7 +482,6 @@ EXEMPLO DE ANALISE CORRETA:
                         resposta_texto += f"\n• {r.nome_candidato} ({r.score}/100) - {motivo}"
             
             else:
-                # Nenhum candidato adequado encontrado
                 melhor_inadequado = resultados_ordenados[0] if resultados_ordenados else None
                 
                 resposta_texto = f"NENHUM CANDIDATO ATENDE OS CRITÉRIOS MÍNIMOS\n\n"
@@ -469,7 +490,6 @@ EXEMPLO DE ANALISE CORRETA:
                     resposta_texto += f"MELHOR CANDIDATO DISPONÍVEL: {melhor_inadequado.nome_candidato} ({melhor_inadequado.arquivo})\n"
                     resposta_texto += f"NOTA: {melhor_inadequado.score}/100 (Abaixo do mínimo recomendado: {NOTA_MINIMA_RECOMENDACAO})\n\n"
                     
-                    # Adiciona informação de localização se disponível
                     if melhor_inadequado.location_analysis:
                         loc = melhor_inadequado.location_analysis
                         resposta_texto += f"LOCALIZAÇÃO: {loc.match_status}"
@@ -497,7 +517,6 @@ EXEMPLO DE ANALISE CORRETA:
                 for idx, r in enumerate(resultados_ordenados, 1):
                     resposta_texto += f"\n{idx}. {r.nome_candidato} - Nota: {r.score}/100"
                 
-                # Adiciona candidatos descartados por localização (se existirem)
                 if candidatos_descartados:
                     resposta_texto += "\n\nCANDIDATOS DESCARTADOS (localização incompatível):"
                     for r in candidatos_descartados:
