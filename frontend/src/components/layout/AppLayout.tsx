@@ -60,7 +60,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen min-h-[100dvh] bg-gray-50 flex font-sans text-black overflow-x-hidden">
-      {/* Overlay mobile */}
       <div
         role="button"
         tabIndex={0}
@@ -73,7 +72,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         )}
       />
 
-      {/* SIDEBAR: drawer no mobile, fixo no desktop */}
       <aside
         className={cn(
           "fixed left-0 top-0 z-40 h-screen h-[100dvh] w-[min(14rem,82vw)] min-[360px]:w-56 lg:w-56 bg-gray-50 border-r-2 border-black flex flex-col transition-transform duration-200 ease-out lg:translate-x-0",
@@ -81,13 +79,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         )}
       >
         <div className="h-12 min-[360px]:h-14 sm:h-16 lg:h-20 flex items-center justify-center px-2 min-[360px]:px-3 sm:px-4 border-b-2 border-black bg-white shrink-0 relative">
-          {/* Logo colapsada em telas menores */}
           <img
             src={adequaCollapsed}
             alt="Adequa"
             className="h-6 min-[360px]:h-7 sm:h-8 w-auto object-contain min-w-0 lg:hidden"
           />
-          {/* Logo completa apenas em telas grandes */}
           <img
             src={adequa}
             alt="Adequa"
@@ -151,7 +147,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {/* Menu do usuário no sidebar (só em telas pequenas) */}
         <div className="lg:hidden shrink-0 p-2 min-[360px]:p-3 sm:p-4 border-t-2 border-black bg-white">
           <div className="flex items-center gap-2 min-[360px]:gap-3 mb-2 min-[360px]:mb-3">
             <div className="avatar placeholder shrink-0">
@@ -181,7 +176,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </button>
         </div>
 
-        {/* Menu do usuário no sidebar (telas grandes): nome + Sair ao lado */}
         <div className="hidden lg:block shrink-0 p-2 min-[360px]:p-3 sm:p-4 border-t-2 border-black bg-white">
           <div className="flex items-center gap-2 w-full px-2 py-2.5 border-2 border-black rounded-lg bg-white">
             <div className="avatar placeholder shrink-0">
@@ -210,7 +204,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {/* CONTEÚDO PRINCIPAL */}
       <div className="flex-1 flex flex-col min-h-screen min-h-[100dvh] w-full min-w-0 ml-0 lg:ml-56">
         {/* HEADER DO APP */}
         <header
@@ -233,11 +226,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <Menu className="w-2 h-2 min-[360px]:w-4 min-[360px]:h-4" />
             </button>
 
-          {/* Menu de Usuário (só em telas lg ou maiores); abre logo abaixo do trigger */}
          
         </header>
 
-        {/* ÁREA DE CONTEÚDO */}
         <main className="page-padding">
           {children}
         </main>

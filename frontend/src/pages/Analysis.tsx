@@ -120,7 +120,6 @@ function Analysis() {
       const allSelectedAreFromDb = selectedFromLocal.length === 0;
 
       if (allSelectedAreFromDb && selectedFromDb.length > 0) {
-        // Currículos já no banco: usar o vector_index_id do selecionado (sem reenviar)
         const firstDbResume = databaseResumes.find((r) => r.resume_id === selectedFromDb[0]);
         const indexIdToUse = firstDbResume?.vector_index_id?.trim();
         if (!indexIdToUse) {
@@ -148,7 +147,6 @@ function Analysis() {
         return;
       }
 
-      // Há currículos locais: enviar apenas os arquivos locais (não reenviar os do banco)
       const filesToUpload: File[] = [];
       for (const resumeId of selectedFromLocal) {
         const localResume = localResumes.find((r) => r.id === resumeId);
@@ -226,25 +224,20 @@ function Analysis() {
   return (
     <ChatProvider indexId={indexId}>
       <div className="min-h-screen bg-gray-50 font-sans text-black pb-20">
-        {/* Background Grid Sutil */}
         <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none z-0" />
 
         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 relative z-10 h-full">
           
-          {/* Header da Página */}
           <div className="mb-5">
             <p className="text-gray-600 font-medium">
               Utilize Inteligência Artificial para analisar e ranquear candidatos.
             </p>
           </div>
 
-          {/* Stepper removido para interface mais clean */}
           
-          {/* PASSO 1: SELEÇÃO */}
           {currentStep === 0 && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
               
-              {/* Seletor de Modo */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <button
                   onClick={() => setUploadMode('upload')}
@@ -290,10 +283,8 @@ function Analysis() {
                 </button>
               </div>
 
-              {/* Área de Conteúdo (Upload ou Lista) */}
               <div className="bg-white border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 md:p-8">
                 
-                {/* MODO UPLOAD */}
                 {uploadMode === 'upload' && (
                   <div className="space-y-6">
                     <div className="">
@@ -319,7 +310,6 @@ function Analysis() {
                   </div>
                 )}
 
-                {/* MODO SELEÇÃO LOCAL/DB */}
                 {uploadMode === 'local' && (
                   <div className="space-y-6">
                     <div className="flex flex-col md:flex-row justify-between md:items-center border-black gap-2">
@@ -430,7 +420,6 @@ function Analysis() {
                         )}
                       </div>
 
-                      {/* Separador OU */}
                       <div className="hidden lg:flex flex-col items-center justify-center py-1">
                         <div className="h-full w-px bg-black"></div>
                         <div className="my-2 px-3 py-1 bg-white border-2 border-black rounded-full">
@@ -439,14 +428,12 @@ function Analysis() {
                         <div className="h-full w-px bg-black"></div>
                       </div>
 
-                      {/* Mobile separator */}
                       <div className="lg:hidden flex items-center gap-3">
                         <div className="flex-1 h-px bg-black"></div>
                         <span className="text-xs font-black text-gray-600 bg-white px-3 py-1 border-2 border-black rounded-full">OU</span>
                         <div className="flex-1 h-px bg-black"></div>
                       </div>
 
-                      {/* OPÇÃO 2: Search and Manual Selection */}
                       <div className="bg-gradient-to-br from-green-50 to-white border-2 border-black rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-3">
                           <div className="p-1.5 bg-neo-primary border border-black rounded">
@@ -538,7 +525,6 @@ function Analysis() {
                       </div>
                     )}
                     
-                    {/* Botão Analisar - posicionado à esquerda e menor */}
                     <div className="flex justify-end">
                       <button
                         onClick={handleLocalUpload}
@@ -572,10 +558,8 @@ function Analysis() {
             </div>
           )}
 
-          {/* PASSO 2: ANÁLISE */}
           {currentStep === 1 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              {/* Header de Ação */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white">                
                 <button 
                   onClick={handleBack}
@@ -586,7 +570,6 @@ function Analysis() {
                 </button>
               </div>
 
-              {/* Chat Component */}
                 <div className="bg-white border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden h-full">
                 <HistoryChat indexId={indexId} openSessionId={openSessionId ?? sessionIdFromAnalisar ?? undefined} />
                 </div>

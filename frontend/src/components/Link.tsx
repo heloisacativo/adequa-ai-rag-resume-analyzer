@@ -1,4 +1,3 @@
-// src/components/Link.tsx
 import type { ReactNode, MouseEvent } from "react";
 
 interface LinkProps {

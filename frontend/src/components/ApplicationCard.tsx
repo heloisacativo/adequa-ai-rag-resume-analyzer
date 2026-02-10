@@ -21,7 +21,6 @@ export function ApplicationCard({ application, isDragging }: ApplicationCardProp
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Não abre modal se estiver arrastando
     if (isDragging) return;
     e.stopPropagation();
     setIsModalOpen(true);
@@ -31,13 +30,11 @@ export function ApplicationCard({ application, isDragging }: ApplicationCardProp
     <>
       <div
         className={cn(
-          // CONTAINER MELHORADO: Mais espaçoso e elegante
-          // Garantindo que todas as bordas sejam sempre iguais
           'group bg-neo-primary w-full relative',
           'border-2 border-neo-secondary rounded-lg',
-          'p-4 mb-0', // Padding maior para mais respiro, mb-0 para não interferir com space-y
+          'p-4 mb-0', 
           
-          'cursor-pointer', // Muda para pointer para indicar que é clicável
+          'cursor-pointer', 
           'hover:opacity-90 transition-opacity',
           isDragging && 'rotate-1 scale-105 z-50 cursor-grabbing'
         )}
@@ -58,14 +55,11 @@ export function ApplicationCard({ application, isDragging }: ApplicationCardProp
         }}
         onClick={handleCardClick}
       >
-        {/* CONTEÚDO SIMPLIFICADO */}
         <div className="flex flex-col gap-2">
-          {/* Nome da Vaga */}
           <p className="text-sm font-black text-neo-secondary leading-tight">
             {application.position}
           </p>
           
-          {/* Data da Vaga */}
           <div className="flex items-center gap-2 text-sm font-bold text-neo-primary">
             <Calendar className="w-4 h-4" />
             <span>Data: {formatDate(application.date)}</span>
@@ -73,7 +67,6 @@ export function ApplicationCard({ application, isDragging }: ApplicationCardProp
         </div>
       </div>
 
-      {/* MODAL DE DESCRIÇÃO */}
       {isModalOpen && createPortal(
         <>
           {/* OVERLAY */}
@@ -86,7 +79,6 @@ export function ApplicationCard({ application, isDragging }: ApplicationCardProp
             onClick={() => setIsModalOpen(false)}
           />
           
-          {/* MODAL BOX */}
           <div 
             className="fixed inset-0 flex items-center justify-center p-4 z-[10001] pointer-events-none"
           >
@@ -94,7 +86,6 @@ export function ApplicationCard({ application, isDragging }: ApplicationCardProp
               className="relative w-full max-w-2xl bg-neo-primary border-2 border-neo-secondary rounded-lg p-6 pointer-events-auto max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* HEADER */}
               <div className="flex items-center justify-between mb-6 border-b-2 border-neo-secondary pb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-white border-2 border-neo-secondary rounded-lg flex items-center justify-center">
@@ -123,7 +114,6 @@ export function ApplicationCard({ application, isDragging }: ApplicationCardProp
                 </button>
               </div>
 
-              {/* CONTEÚDO */}
               <div className="space-y-4">
                 {/* Data */}
                 <div className="flex items-center gap-2 text-sm font-bold text-neo-primary">
@@ -131,7 +121,6 @@ export function ApplicationCard({ application, isDragging }: ApplicationCardProp
                   <span>Data da aplicação: {formatDate(application.date)}</span>
                 </div>
 
-                {/* Descrição */}
                 <div>
                   <h4 className="text-sm font-black text-neo-secondary uppercase mb-2">
                     Descrição da Vaga

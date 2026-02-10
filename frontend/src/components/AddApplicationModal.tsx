@@ -47,7 +47,6 @@ export function AddApplicationModal() {
 
       const newApplication = await response.json();
       
-      // Passa o ID correto do servidor para garantir consistência
       const applicationToAdd: JobApplication = {
         id: newApplication.id.toString(),
         company: newApplication.company_name,
@@ -76,7 +75,6 @@ export function AddApplicationModal() {
 
   return (
     <>
-      {/* TRIGGER BUTTON - Profissional e Limpo */}
       <button
         className="
           flex items-center gap-2
@@ -95,7 +93,6 @@ export function AddApplicationModal() {
 
       {open && mounted && createPortal(
         <>
-          {/* OVERLAY PRINCIPAL - Cobre toda a tela incluindo sidebar */}
           <div 
             className="fixed inset-0 bg-neo-secondary/60 z-[10000]"
             style={{ 
@@ -105,7 +102,6 @@ export function AddApplicationModal() {
             onClick={() => setOpen(false)}
           />
           
-          {/* MODAL BOX - Centralizado e acima do overlay */}
           <div 
             className="fixed inset-0 flex items-center justify-center p-4 z-[10001] pointer-events-none"
           >
@@ -114,7 +110,6 @@ export function AddApplicationModal() {
               onClick={(e) => e.stopPropagation()}
             >
             
-            {/* HEADER */}
             <div className="flex items-center justify-between mb-2 pb-2">
               <h3 className="text-xl font-black text-neo-secondary uppercase tracking-tight flex items-center gap-2">
                 <Briefcase className="w-5 h-5" strokeWidth={2.5} />
@@ -131,10 +126,8 @@ export function AddApplicationModal() {
               </button>
             </div>
 
-            {/* FORM */}
             <form onSubmit={handleSubmit} className="space-y-5">
               
-              {/* COMPANY FIELD */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider mb-1.5 ml-1 text-neo-secondary">
                   Empresa
@@ -162,7 +155,6 @@ export function AddApplicationModal() {
                 </div>
               </div>
 
-              {/* POSITION FIELD */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider mb-1.5 ml-1">
                   Cargo / Vaga
@@ -190,7 +182,6 @@ export function AddApplicationModal() {
                 </div>
               </div>
 
-              {/* DATE FIELD */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider mb-1.5 ml-1">
                   Data
@@ -216,7 +207,6 @@ export function AddApplicationModal() {
                 </div>
               </div>
 
-              {/* DESCRIPTION FIELD */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider mb-1.5 ml-1">
                   Descrição
@@ -243,7 +233,6 @@ export function AddApplicationModal() {
                 </div>
               </div>
 
-              {/* ACTION BUTTONS */}
               <div className="flex gap-4 pt-2">
                 <button
                   type="button"

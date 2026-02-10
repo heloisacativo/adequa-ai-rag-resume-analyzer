@@ -15,7 +15,6 @@ export function CandidateAnalyzer({ indexId }: CandidateAnalyzerProps) {
 
   return (
     <div className="space-y-6">
-      {/* Job Description Input */}
       <div className="form-control">
         <label className="label">
           <span className="label-text font-semibold">Descrição da Vaga</span>
@@ -33,7 +32,6 @@ export function CandidateAnalyzer({ indexId }: CandidateAnalyzerProps) {
         </label>
       </div>
 
-      {/* Analyze Button */}
       <button
         onClick={handleAnalyze}
         disabled={!jobDescription.trim() || isAnalyzing}
@@ -54,10 +52,8 @@ export function CandidateAnalyzer({ indexId }: CandidateAnalyzerProps) {
         )}
       </button>
 
-      {/* Results */}
       {analysisResult && (
         <div className="space-y-4">
-          {/* Summary Stats */}
           <div className="stats shadow w-full">
             <div className="stat">
               <div className="stat-title">Total de Candidatos</div>
@@ -66,7 +62,6 @@ export function CandidateAnalyzer({ indexId }: CandidateAnalyzerProps) {
             </div>
           </div>
 
-          {/* Best Candidate Highlight */}
           {analysisResult.best_candidate && (
             <div className="bg-neo-secondary text-black border-1 border-black p-4 rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
               <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
@@ -84,14 +79,12 @@ export function CandidateAnalyzer({ indexId }: CandidateAnalyzerProps) {
             </div>
           )}
 
-          {/* Ranking List */}
           <div>
             <h3 className="text-lg font-semibold mb-3">Ranking de Candidatos</h3>
             <div className="space-y-3">
               {analysisResult.ranking.map((candidate, index) => (
                 <div key={candidate.resume_id} className="card bg-base-200 shadow-sm">
                   <div className="card-body p-4">
-                    {/* Header */}
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <div className="badge badge-lg badge-primary font-bold">
@@ -114,7 +107,6 @@ export function CandidateAnalyzer({ indexId }: CandidateAnalyzerProps) {
                       </div>
                     </div>
 
-                    {/* Score Progress */}
                     <div className="mt-3">
                       <progress 
                         className={`progress ${
@@ -127,7 +119,6 @@ export function CandidateAnalyzer({ indexId }: CandidateAnalyzerProps) {
                       />
                     </div>
 
-                    {/* Strengths */}
                     {candidate.strengths.length > 0 && (
                       <div className="mt-3">
                         <h5 className="text-sm font-semibold text-success mb-2">
@@ -143,7 +134,6 @@ export function CandidateAnalyzer({ indexId }: CandidateAnalyzerProps) {
                       </div>
                     )}
 
-                    {/* Weaknesses */}
                     {candidate.weaknesses.length > 0 && (
                       <div className="mt-3">
                         <h5 className="text-sm font-semibold text-warning mb-2">

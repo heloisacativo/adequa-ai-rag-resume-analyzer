@@ -34,20 +34,16 @@ const App = () => (
       <Toaster />
       <BrowserRouter>
         <Routes>
-          {/* Public routes */}
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
-          {/* Recruiter routes */}
           <Route path="/ia-analysis" element={<ProtectedRoute><RecruiterDashboard /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
 
-          {/* Candidate routes */}
           <Route path="/candidate-dashboard" element={<ProtectedRoute><ApplicationProvider><CandidateDashboard /></ApplicationProvider></ProtectedRoute>} />
           <Route path="/analysis" element={<ProtectedRoute><ApplicationProvider><ResumeAnalysis /></ApplicationProvider></ProtectedRoute>} />
 
-          {/* Other routes */}
           <Route path="/jobs" element={<ProtectedRoute><JobsManagement /></ProtectedRoute>} />
           <Route path="/jobs/new" element={<ProtectedRoute><JobForm /></ProtectedRoute>} />
           <Route path="/jobs/:id" element={<ProtectedRoute><JobDetail /></ProtectedRoute>} />

@@ -32,7 +32,6 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
   
   const { user } = useAuth();
   const userId = user?.id ?? "";
-  // Chat history com cache (React Query) – evita várias chamadas à API
   const { sessions: chatSessions, isLoading: chatLoading, invalidate: invalidateChatSessions, refetch: refetchChatSessions } = useChatSessions(user?.id);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
@@ -44,14 +43,12 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
   const { savedIndexes, loading: indexesLoading } = useSavedIndexes();
   const jobSelectionInProgress = useRef(false);
 
-  // Carregar vagas quando mudar para modo Job
   useEffect(() => {
     loadJobs();
-  }, []); // Carrega uma vez no mount para garantir
+  }, []); 
 
-  // Carregar sessão atual do backend após carregar sessões (ou abrir a sessão vinda do histórico)
   useEffect(() => {
-    if (chatSessions.length === 0 || loading) return; // Evita carregar durante envio de mensagens
+    if (chatSessions.length === 0 || loading) return; 
     if (openSessionId) {
       const session = chatSessions.find((s) => s.session_id === openSessionId);
       if (session) selectChatSession(session);
@@ -60,7 +57,6 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
     loadCurrentSession();
   }, [chatSessions, openSessionId]);
 
-  // Salvar sessão atual no backend
   useEffect(() => {
     saveCurrentSession();
   }, [currentSessionId]);
@@ -133,7 +129,6 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
       if (!selectedJob) return;
 
       const title = `Análise de Vaga: ${selectedJob.title}`;
-      // Reutiliza sessão atual OU a passada pela página Analysis (openSessionId), para não criar dois chats
       const existingSessionId = currentSessionId || openSessionId || null;
       let sessionIdToUse: string;
 
@@ -142,9 +137,7 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
         if (!currentSessionId) setCurrentSessionId(existingSessionId);
         try {
           await chatService.updateSessionTitle(existingSessionId, userId, title);
-          // Invalidação apenas quando necessário
         } catch (_) {
-          // ignora falha ao atualizar título
         } 
       } else {
         const session = await chatService.createSession({
@@ -156,7 +149,6 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
         // Invalidação apenas quando necessário
       }
 
-      // Feedback visual
       setMessages((prev) => [...prev, { 
         sender: "Você", 
         text: `Vaga: ${selectedJob.title}\nLocal: ${selectedJob.location}\n` 
@@ -174,10 +166,8 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
           
           setMessages((prev) => [...prev, assistantMessage]);
 
-          // Salva no backend após adicionar ao estado
           try {
             await saveMessagesToBackend(autoQuery, data.response, sessionIdToUse);
-            // Invalida sessions apenas depois de completar tudo
             setTimeout(() => {
               invalidateChatSessions();
             }, 100);
@@ -214,7 +204,6 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
     const messageToSend = input.trim();
     if (!messageToSend) return;
 
-    // Adiciona mensagem do usuário imediatamente
     const userMessage = { sender: "Você", text: messageToSend };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
@@ -225,13 +214,11 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
       if (queryMode === "job") {
         const selectedJob = jobs.find(job => job.id === selectedJobId);
         if (selectedJob) {
-          // Só adiciona contexto detalhado se a pergunta parecer precisar de análise específica da vaga
           const needsJobContext = /\b(ader[êe]ncia|compatib|adequa|match|encaixa|atende|requisito|qualifica|perfil|vaga)\b/i.test(messageToSend);
           
           if (needsJobContext) {
             query = `Contexto da Vaga: ${selectedJob.title} - Localização: ${selectedJob.location} - Descrição: ${selectedJob.description}. Pergunta: ${messageToSend}`;
           } else {
-            // Para perguntas mais abertas, só menciona que há uma vaga selecionada
             query = `[Vaga de referência: ${selectedJob.title}] ${messageToSend}`;
           }
         }
@@ -240,19 +227,15 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
       const data = await resumeService.search(query, selectedIndexId);
       const assistantMessage = { sender: "Assistente", text: data.response };
       
-      // Adiciona resposta do assistente
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // Salva no backend após adicionar ao estado
       try {
         await saveMessagesToBackend(messageToSend, data.response);
-        // Invalida sessions apenas depois de completar tudo
         setTimeout(() => {
           if (userId) invalidateChatSessions();
         }, 100);
       } catch (backendError) {
         console.error("Erro ao salvar no backend:", backendError);
-        // Mensagem já está no estado, então não precisa desfazer
       }
     } catch (error) {
       console.error("Erro na busca:", error);
@@ -267,21 +250,18 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
     assistantMessage: string,
     sessionIdOverride?: string
   ) => {
-    if (!userId) return; // Chats são salvos no banco apenas para usuário autenticado
+    if (!userId) return;
     try {
       let sessionId = sessionIdOverride ?? currentSessionId;
       if (!sessionId) {
-        // Create new session (vinculado ao usuário autenticado)
         const session = await chatService.createSession({
           user_id: userId,
           title: userMessage.slice(0, 50) + (userMessage.length > 50 ? '...' : ''),
         });
         sessionId = session.session_id;
         setCurrentSessionId(sessionId);
-        // Não invalida aqui para evitar conflitos durante envio de mensagens
       }
 
-      // Add messages
       await chatService.addMessage(sessionId, { sender: "Você", text: userMessage });
       await chatService.addMessage(sessionId, { sender: "Assistente", text: assistantMessage });
     } catch (error) {
@@ -299,7 +279,6 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
       setCurrentSessionId(session.session_id);
       setMessages([]);
       setInput("");
-      // Invalidar apenas após completar todas as operações
       invalidateChatSessions();
       await refetchChatSessions();
     } catch (error) {
@@ -362,7 +341,7 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
         sender: m.sender,
         text: m.text,
       }));
-      if (!loading) { // Só atualiza se não estiver enviando mensagem
+      if (!loading) {
         setMessages(formattedMessages);
       }
     } catch (error) {
@@ -381,7 +360,6 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
   return (
     <div className="flex h-[750px] w-full bg-white border border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden font-sans">
       
-      {/* Modal confirmar exclusão */}
       {sessionToDelete && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
@@ -514,17 +492,13 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
         </div>
       </div>
 
-      {/* MAIN CHAT AREA */}
       <div className="flex-1 flex flex-col">
       
-      {/* --- HEADER DE CONFIGURAÇÃO (Topo) --- */}
       <div className="bg-gray-50  border-black p-5 space-y-5">
-        {/* 2. Seleção de Modo (A PARTE QUE VOCÊ PEDIU DE VOLTA) */}
         <div className=" border-gray-300 ">
           
           <div className="flex flex-wrap gap-4">
             
-            {/* Opção A: Chat Livre (Currículos) */}
             <label 
               htmlFor="mode-resumes" 
               className={cn(
@@ -541,7 +515,7 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
                 value="resumes"
                 checked={queryMode === "resumes"}
                 onChange={() => setQueryMode("resumes")}
-                className="hidden" // Esconde o rádio padrão feio
+                className="hidden" 
               />
               <FileText className="w-5 h-5" />
               <div className="flex flex-col flex-1">
@@ -551,7 +525,6 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
               {queryMode === "resumes" && <CheckCircle2 className="w-4 h-4 text-green-400" />}
             </label>
 
-            {/* Opção B: Usar Vaga */}
             <label 
               htmlFor="mode-job" 
               className={cn(
@@ -582,7 +555,6 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId }: 
           </div>
         </div>
 
-        {/* 3. Seletor de Vaga (Aparece apenas se modo Vaga selecionado) */}
         {queryMode === "job" && (
           <div className="flex items-end gap-3 animate-in slide-in-from-top-2 duration-300 bg-yellow-50 p-3 border border-black border-dashed">
             <div className="flex-1 space-y-1">
