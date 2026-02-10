@@ -112,58 +112,81 @@ class SMTPEmailService(EmailServiceProtocol):
             return False
 
     async def _send_email(self, recipient: str, subject: str, html_body: str) -> bool:
-        """Método interno para enviar emails via SMTP."""
-        try:
-            self.logger.info(f"📧 Tentando enviar email...")
-            self.logger.info(f"   De: {self.email_sender}")
-            self.logger.info(f"   Para: {recipient}")
-            self.logger.info(f"   Servidor: {self.smtp_server}:{self.smtp_port}")
-            
-            # Verifica conectividade com o servidor SMTP antes de tentar enviar
-            self.logger.info(f"🔍 Testando conectividade com {self.smtp_server}...")
+        """Método interno para enviar emails via SMTP com fallback para múltiplas portas."""
+        self.logger.info(f"📧 Tentando enviar email...")
+        self.logger.info(f"   De: {self.email_sender}")
+        self.logger.info(f"   Para: {recipient}")
+        
+        # Prepara a mensagem
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = self.email_sender
+        msg["To"] = recipient
+        part = MIMEText(html_body, "html", "utf-8")
+        msg.attach(part)
+        
+        # Tenta múltiplas configurações (porta 465 SSL e porta 587 STARTTLS)
+        configs = [
+            {"port": 465, "use_ssl": True, "name": "SSL (porta 465)"},
+            {"port": 587, "use_ssl": False, "name": "STARTTLS (porta 587)"},
+        ]
+        
+        for config in configs:
             try:
-                sock = socket.create_connection((self.smtp_server, self.smtp_port), timeout=5)
-                sock.close()
-                self.logger.info(f"✅ Servidor acessível")
-            except socket.timeout:
-                self.logger.error(f"❌ Timeout ao conectar no servidor SMTP. Verifique sua conexão de internet ou firewall.")
-                return False
-            except socket.error as e:
-                self.logger.error(f"❌ Não foi possível conectar ao servidor SMTP: {e}")
-                return False
-            
-            msg = MIMEMultipart("alternative")
-            msg["Subject"] = subject
-            msg["From"] = self.email_sender
-            msg["To"] = recipient
-
-            part = MIMEText(html_body, "html", "utf-8")
-            msg.attach(part)
-
-            self.logger.info(f"🔗 Conectando ao servidor SMTP...")
-            with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=15) as server:
-                self.logger.info(f"🔐 Iniciando TLS...")
-                server.starttls()
-                self.logger.info(f"🔑 Fazendo login com usuário: {self.smtp_user}")
-                server.login(self.smtp_user, self.email_password)
-                self.logger.info(f"📤 Enviando mensagem...")
-                result = server.sendmail(self.email_sender, recipient, msg.as_string())
-                self.logger.info(f"📬 Resultado do envio: {result}")
-
-            self.logger.info(f"✅ Email enviado com sucesso para {recipient}")
-            return True
-        except socket.timeout:
-            self.logger.error(f"❌ Timeout na operação SMTP. O servidor demorou muito para responder.")
-            self.logger.error(f"   Possíveis causas: firewall bloqueando porta 587, servidor indisponível, ou problema de rede.")
-            return False
-        except smtplib.SMTPAuthenticationError as e:
-            self.logger.error(f"❌ Erro de autenticação SMTP: {e}")
-            self.logger.error(f"   Verifique SMTP_USER ({self.smtp_user}) e EMAIL_PASSWORD no .env")
-            return False
-        except smtplib.SMTPException as e:
-            self.logger.error(f"❌ Erro SMTP ao enviar email para {recipient}: {e}")
-            return False
-        except Exception as e:
-            self.logger.error(f"❌ Erro inesperado ao enviar email para {recipient}: {e}")
-            self.logger.error(f"   Tipo do erro: {type(e).__name__}")
-            return False
+                port = config["port"]
+                use_ssl = config["use_ssl"]
+                config_name = config["name"]
+                
+                self.logger.info(f"🔄 Tentando envio via {config_name}...")
+                
+                # Testa conectividade
+                self.logger.info(f"🔍 Testando conectividade {self.smtp_server}:{port}...")
+                try:
+                    sock = socket.create_connection((self.smtp_server, port), timeout=5)
+                    sock.close()
+                    self.logger.info(f"✅ Porta {port} acessível")
+                except (socket.timeout, socket.error) as e:
+                    self.logger.warning(f"⚠️ Porta {port} não acessível: {e}")
+                    continue
+                
+                # Tenta enviar usando a configuração atual
+                if use_ssl:
+                    # Porta 465 - SSL direto
+                    self.logger.info(f"🔗 Conectando via SSL...")
+                    with smtplib.SMTP_SSL(self.smtp_server, port, timeout=15) as server:
+                        self.logger.info(f"🔑 Fazendo login com: {self.smtp_user}")
+                        server.login(self.smtp_user, self.email_password)
+                        self.logger.info(f"📤 Enviando mensagem...")
+                        server.sendmail(self.email_sender, recipient, msg.as_string())
+                else:
+                    # Porta 587 - STARTTLS
+                    self.logger.info(f"🔗 Conectando via STARTTLS...")
+                    with smtplib.SMTP(self.smtp_server, port, timeout=15) as server:
+                        self.logger.info(f"🔐 Iniciando TLS...")
+                        server.starttls()
+                        self.logger.info(f"🔑 Fazendo login com: {self.smtp_user}")
+                        server.login(self.smtp_user, self.email_password)
+                        self.logger.info(f"📤 Enviando mensagem...")
+                        server.sendmail(self.email_sender, recipient, msg.as_string())
+                
+                self.logger.info(f"✅ Email enviado com sucesso via {config_name}!")
+                return True
+                
+            except smtplib.SMTPAuthenticationError as e:
+                self.logger.error(f"❌ Erro de autenticação em {config_name}: {e}")
+                self.logger.error(f"   Verifique SMTP_USER ({self.smtp_user}) e EMAIL_PASSWORD")
+                continue
+            except (socket.timeout, smtplib.SMTPException) as e:
+                self.logger.warning(f"⚠️ Falha em {config_name}: {e}")
+                continue
+            except Exception as e:
+                self.logger.warning(f"⚠️ Erro inesperado em {config_name}: {type(e).__name__} - {e}")
+                continue
+        
+        # Se chegou aqui, todas as tentativas falharam
+        self.logger.error(f"❌ FALHA: Não foi possível enviar email após tentar todas as configurações")
+        self.logger.error(f"   Possíveis soluções:")
+        self.logger.error(f"   1. Verifique se seu firewall permite conexões nas portas 465 e 587")
+        self.logger.error(f"   2. Confirme se as credenciais Brevo estão corretas no arquivo .env")
+        self.logger.error(f"   3. Teste sua conexão: telnet {self.smtp_server} 465")
+        return False
