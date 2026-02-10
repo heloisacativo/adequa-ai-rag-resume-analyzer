@@ -151,7 +151,7 @@ function ResumeAnalysis() {
   return (
     <AppLayout>
       <div className="min-h-screen bg-gray-50 font-sans text-black">
-        <div className="max-w-7xl">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
         {/* HEADER DA PÁGINA */}
         <div className="pb-4 min-[360px]:pb-6 sm:pb-8">
           <h1 className="text-responsive-xl font-black uppercase tracking-tighter mb-1">
@@ -162,7 +162,7 @@ function ResumeAnalysis() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 min-[360px]:gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 min-[360px]:gap-6 lg:gap-8 w-full">
           {/* COLUNA ESQUERDA: INPUTS */}
           <div className="lg:col-span-5 space-y-4 min-[360px]:space-y-6 lg:space-y-8">
             {/* 1. UPLOAD CARD */}
