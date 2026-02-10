@@ -1,4 +1,5 @@
 import smtplib
+import socket
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import final
@@ -118,6 +119,19 @@ class SMTPEmailService(EmailServiceProtocol):
             self.logger.info(f"   Para: {recipient}")
             self.logger.info(f"   Servidor: {self.smtp_server}:{self.smtp_port}")
             
+            # Verifica conectividade com o servidor SMTP antes de tentar enviar
+            self.logger.info(f"🔍 Testando conectividade com {self.smtp_server}...")
+            try:
+                sock = socket.create_connection((self.smtp_server, self.smtp_port), timeout=5)
+                sock.close()
+                self.logger.info(f"✅ Servidor acessível")
+            except socket.timeout:
+                self.logger.error(f"❌ Timeout ao conectar no servidor SMTP. Verifique sua conexão de internet ou firewall.")
+                return False
+            except socket.error as e:
+                self.logger.error(f"❌ Não foi possível conectar ao servidor SMTP: {e}")
+                return False
+            
             msg = MIMEMultipart("alternative")
             msg["Subject"] = subject
             msg["From"] = self.email_sender
@@ -127,11 +141,10 @@ class SMTPEmailService(EmailServiceProtocol):
             msg.attach(part)
 
             self.logger.info(f"🔗 Conectando ao servidor SMTP...")
-            with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=30) as server:
-                server.set_debuglevel(1)  # Ativa debug do SMTP
+            with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=15) as server:
                 self.logger.info(f"🔐 Iniciando TLS...")
                 server.starttls()
-                self.logger.info(f"🔑 Fazendo login...")
+                self.logger.info(f"🔑 Fazendo login com usuário: {self.smtp_user}")
                 server.login(self.smtp_user, self.email_password)
                 self.logger.info(f"📤 Enviando mensagem...")
                 result = server.sendmail(self.email_sender, recipient, msg.as_string())
@@ -139,13 +152,18 @@ class SMTPEmailService(EmailServiceProtocol):
 
             self.logger.info(f"✅ Email enviado com sucesso para {recipient}")
             return True
+        except socket.timeout:
+            self.logger.error(f"❌ Timeout na operação SMTP. O servidor demorou muito para responder.")
+            self.logger.error(f"   Possíveis causas: firewall bloqueando porta 587, servidor indisponível, ou problema de rede.")
+            return False
         except smtplib.SMTPAuthenticationError as e:
             self.logger.error(f"❌ Erro de autenticação SMTP: {e}")
-            self.logger.error(f"   Verifique EMAIL_SENDER e EMAIL_PASSWORD no .env")
+            self.logger.error(f"   Verifique SMTP_USER ({self.smtp_user}) e EMAIL_PASSWORD no .env")
             return False
         except smtplib.SMTPException as e:
             self.logger.error(f"❌ Erro SMTP ao enviar email para {recipient}: {e}")
             return False
         except Exception as e:
             self.logger.error(f"❌ Erro inesperado ao enviar email para {recipient}: {e}")
+            self.logger.error(f"   Tipo do erro: {type(e).__name__}")
             return False
