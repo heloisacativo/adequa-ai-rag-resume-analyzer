@@ -93,14 +93,14 @@ export default function LoginPage() {
               'lg:pt-12 lg:pr-12 lg:pb-12 lg:pl-12',
             ].join(' ')}
           >
-             <div className="flex flex-col items-center justify- mt-[-2rem]">
-          <div className="w-44 h-12 min-[360px]:w-52 min-[360px]:h- sm:w-60 sm:h-20 flex items-center justify-center shrink-0">
-            <img src={adequa} alt="Adequa Logo" className="w-full h-full object-contain" />
-          </div>
-            <p className="-mt-1 text-xs text-neutral-500 font-medium mb-2 min-[360px]:-mt-2 min-[360px]:text-sm sm:-mt-4.5 sm:mb-3 text-center max-w-md mx-auto whitespace-nowrap">
-            Sistema de IA aplicado à avaliação de perfis profissionais
-            </p>
-        </div>
+            <div className="flex flex-col items-center justify-center mb-4 min-[360px]:mb-6 sm:mb-8">
+              <div className="w-36 h-10 min-[360px]:w-44 min-[360px]:h-12 sm:w-52 sm:h-16 flex items-center justify-center shrink-0">
+                <img src={adequa} alt="Adequa Logo" className="w-full h-full object-contain" />
+              </div>
+              <p className="text-xs text-neutral-500 font-medium min-[360px]:mt-2 min-[360px]:text-sm sm:mt-3 sm:text-base text-center max-w-xs min-[360px]:max-w-sm sm:max-w-md mx-auto px-2">
+                Sistema de IA aplicado à avaliação de perfis profissionais
+              </p>
+            </div>
             <h2 className="text-xl min-[360px]:text-2xl font-black/30 text-left text-neo-secondary font-medium">ENTRAR</h2>
             <p className="text-sm min-[360px]:text-base text-neo-secondary/60 text-left mb-2">
             <span className="label-text text-sm min-[360px]:text-base font-black/30 text-neo-secondary break-words">Entre na sua conta de recrutador ou candidato</span>
