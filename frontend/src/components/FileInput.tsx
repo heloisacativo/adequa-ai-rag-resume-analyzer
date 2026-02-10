@@ -3,7 +3,7 @@ import { useState, useMemo } from "react";
 import { resumeService } from "../lib/api";
 import { useSavedIndexes } from "../hooks/useSavedIndexes";
 import { useToast } from "../hooks/use-toats";
-import { Upload, FileUp, AlertCircle, X, Trash2 } from "lucide-react"; 
+import { Upload, FileUp, AlertCircle, X, Trash2, Plus, FolderOpen } from "lucide-react"; 
 interface FileInputProps {
   label?: string;
   setIndexId: (id: string) => void;
@@ -34,16 +34,21 @@ const FileInput = ({ label, setIndexId, onSuccess }: FileInputProps) => {
     const selectedFiles = event.target.files;
     if (!selectedFiles) return;
 
-    if (selectedFiles.length > 50) {
+    const newFilesArray = Array.from(selectedFiles);
+    const totalFiles = files.length + newFilesArray.length;
+
+    if (totalFiles > 50) {
       toast({
         title: 'Limite excedido',
-        description: 'Você pode selecionar no máximo 50 currículos por vez.',
+        description: `Você já tem ${files.length} arquivo(s). Pode adicionar no máximo ${50 - files.length} arquivo(s) a mais (limite: 50 currículos).`,
         variant: 'error',
       });
       return;
     }
 
-    setFiles(Array.from(selectedFiles));
+    // Adiciona os novos arquivos aos existentes
+    setFiles(prev => [...prev, ...newFilesArray]);
+    // Limpa o input para permitir selecionar os mesmos arquivos novamente
     event.target.value = '';
   };
 
@@ -105,13 +110,13 @@ const FileInput = ({ label, setIndexId, onSuccess }: FileInputProps) => {
             type="file"
             multiple
             onChange={handleFileChange}
-            disabled={uploading}
+            disabled={uploading || files.length >= 50}
             className="hidden"
             id="file-input"
           />
           <label
             htmlFor="file-input"
-            className="
+            className={`
               block w-full text-sm text-neo-secondary
               
               py-3 px-4
@@ -127,10 +132,26 @@ const FileInput = ({ label, setIndexId, onSuccess }: FileInputProps) => {
               focus:outline-none focus:translate-x-[-2px] focus:translate-y-[-2px] focus:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]
               transition-all duration-200
               disabled:opacity-50 disabled:cursor-not-allowed
-              flex items-center justify-center
-            "
+              flex items-center justify-center gap-2
+              ${files.length >= 50 ? 'opacity-50 cursor-not-allowed' : ''}
+            `}
           >
-            Selecionar Arquivos
+            {files.length >= 50 ? (
+              <>
+                <AlertCircle className="w-4 h-4" />
+                Limite Atingido (50 currículos)
+              </>
+            ) : files.length > 0 ? (
+              <>
+                <Plus className="w-4 h-4" />
+                Adicionar Mais Arquivos
+              </>
+            ) : (
+              <>
+                <FolderOpen className="w-4 h-4" />
+                Selecionar Arquivos
+              </>
+            )}
           </label>
         </div>
 
@@ -236,7 +257,7 @@ const FileInput = ({ label, setIndexId, onSuccess }: FileInputProps) => {
                     className={`
                       shrink-0 p-1.5 rounded-lg border-2 transition-all
                       ${isPdf 
-                        ? 'bg-white border-neo-secondary text-neo-secondary hover:bg-neo-secondary hover:text-white' 
+                        ? 'bg-white border-neo-secondary text-neo-secondary cursor-pointer hover:text-white' 
                         : 'bg-white border-red-400 text-red-700 hover:bg-red-200 hover:border-red-500'
                       }
                     `}
@@ -250,7 +271,7 @@ const FileInput = ({ label, setIndexId, onSuccess }: FileInputProps) => {
           </div>
 
           <p className="text-xs text-gray-600 text-center font-medium">
-            Máximo: 50 currículos por envio
+            {files.length} de 50 currículos • Você pode adicionar mais {50 - files.length} arquivo(s)
           </p>
         </div>
       )}
