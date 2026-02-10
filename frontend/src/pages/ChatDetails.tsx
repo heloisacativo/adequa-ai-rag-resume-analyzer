@@ -60,10 +60,10 @@ export default function ChatDetails() {
         return;
       }
       
-      const formattedMessages = messages.map((msg: any) => ({
+      const formattedMessages: Message[] = messages.map((msg: any) => ({
         id: msg.message_id || msg.id || Math.random().toString(),
         content: msg.text || msg.content || '[Conteúdo indisponível]',
-        sender: msg.sender === "user" ? "user" : msg.sender === "Você" ? "user" : "assistant",
+        sender: (msg.sender === "user" || msg.sender === "Você" ? "user" : "assistant") as "user" | "assistant",
         timestamp: msg.timestamp || msg.created_at || new Date().toISOString()
       }));
       
