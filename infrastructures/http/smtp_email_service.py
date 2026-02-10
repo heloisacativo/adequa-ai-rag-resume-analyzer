@@ -117,6 +117,14 @@ class SMTPEmailService(EmailServiceProtocol):
         self.logger.info(f"   De: {self.email_sender}")
         self.logger.info(f"   Para: {recipient}")
         
+        # Mostra configurações atuais (DEBUG)
+        self.logger.info(f"🔧 CONFIGURAÇÕES SMTP:")
+        self.logger.info(f"   SMTP_SERVER: {self.smtp_server}")
+        self.logger.info(f"   SMTP_PORT (padrão): {self.smtp_port}")
+        self.logger.info(f"   SMTP_USER: {self.smtp_user}")
+        self.logger.info(f"   EMAIL_SENDER: {self.email_sender}")
+        self.logger.info(f"   EMAIL_PASSWORD: {'*' * (len(self.email_password) - 4) + self.email_password[-4:] if len(self.email_password) > 4 else '***'}")
+        
         # Prepara a mensagem
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
