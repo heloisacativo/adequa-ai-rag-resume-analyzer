@@ -166,7 +166,7 @@ function Analysis() {
           toast({
             title: 'Preparando análise precisa',
             description: `Baixando ${selectedDbResumes.length} currículo(s) para garantir análise exata...`,
-            variant: 'default',
+            variant: 'info',
           });
 
           try {
@@ -211,7 +211,7 @@ function Analysis() {
             toast({
               title: 'Criando índice exclusivo',
               description: `Fazendo upload de ${downloadedFiles.length} currículo(s)...`,
-              variant: 'default',
+              variant: 'info',
             });
 
             try {
