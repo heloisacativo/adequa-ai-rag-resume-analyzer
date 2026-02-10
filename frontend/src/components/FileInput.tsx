@@ -41,7 +41,7 @@ const FileInput = ({ label, setIndexId, onSuccess }: FileInputProps) => {
     if (selectedFiles.length > 20) {
       toast({
         title: 'Limite excedido',
-        description: 'Você pode selecionar no máximo 20 currículos.',
+        description: 'Você pode selecionar no máximo 20 currículos por vez. Limite total: 50 currículos.',
         variant: 'error',
       });
       return;
@@ -178,7 +178,7 @@ const FileInput = ({ label, setIndexId, onSuccess }: FileInputProps) => {
           {fileValidation.isValid ? (
             <p className="text-xs font-bold text-green-700 mt-1 ml-1 flex items-center gap-1 bg-green-50 border border-green-300 rounded px-2 py-1">
               <FileUp className="w-3 h-3" />
-              {fileValidation.pdfCount} arquivo(s) PDF pronto(s) para envio (máximo 20)
+              {fileValidation.pdfCount} arquivo(s) PDF pronto(s) para envio (máx. 20 por vez, limite total: 50 currículos)
             </p>
           ) : (
             <div className="text-xs font-bold text-red-700 mt-1 ml-1 bg-red-50 border-2 border-red-500 rounded px-3 py-2">

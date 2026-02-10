@@ -74,7 +74,7 @@ export default function LoginPage() {
             'sm:top-4 sm:right-4 sm:left-auto sm:max-w-sm',
           ].join(' ')}
         >
-          <div className={`alert ${toastType === 'error' ? 'alert-error' : toastType === 'success' ? 'alert-success' : 'alert-info'} border-medium border-neo-secondary shadow-neo text-sm sm:text-base`}>
+          <div className={`alert rounded-none ${toastType === 'error' ? 'alert-error' : toastType === 'success' ? 'alert-success' : 'alert-info'} border-medium border-neo-secondary shadow-neo text-sm sm:text-base`}>
             <span className="font-black">{toastMsg}</span>
           </div>
         </div>
@@ -83,7 +83,7 @@ export default function LoginPage() {
       <div className="w-full max-w-lg animate-fade-in relative z-10 min-w-0 p-8">
     
 
-        <div className="bg-neo-primary border-thickest border-neo-secondary shadow-neo-xl min-w-0">
+        <div className="bg-neo-primary rounded-none border-thickest border-neo-secondary shadow-neo-xl min-w-0">
           <form
             onSubmit={handleSubmit}
             className={[
@@ -116,7 +116,11 @@ export default function LoginPage() {
                     id="email"
                     type="email"
                     placeholder="SEU@EMAIL.COM"
-                    className="w-full min-w-0 input input-bordered border-medium border-neo-secondary bg-neo-primary placeholder:text-neo-secondary/60 text-neo-secondary font-bold text-sm min-[360px]:text-base sm:text-lg transition-all duration-200 shadow-neo focus:shadow-neo-lg"
+                    className="w-full min-w-0 p-2 rounded-none text-sm min-[360px]:text-base font-bold bg-neo-primary text-neo-secondary
+        border-2 min-[360px]:border-4 border-neo-secondary border-thin
+        placeholder:text-gray-500 placeholder:font-medium
+        transition-all duration-200 ease-in-out
+        outline-none"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={isLoading}
@@ -133,7 +137,11 @@ export default function LoginPage() {
                     id="password"
                     type="password"
                     placeholder="••••••••"
-                      className="w-full min-w-0 input input-bordered border-medium border-neo-secondary bg-neo-primary text-neo-secondary font-bold text-sm min-[360px]:text-base sm:text-lg placeholder:text-neo-secondary/60 transition-all duration-200 shadow-neo focus:shadow-neo-lg"
+                      className=" w-full min-w-0 p-2 rounded-none text-sm min-[360px]:text-base font-bold bg-neo-primary text-neo-secondary
+        border-2 min-[360px]:border-4 border-neo-secondary border-thin
+        placeholder:text-gray-500 placeholder:font-medium
+        transition-all duration-200 ease-in-out
+        outline-none"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={isLoading}
@@ -144,21 +152,19 @@ export default function LoginPage() {
               <div className="form-control mt-4 min-[360px]:mt-6 sm:mt-8">
                 <button
                   type="submit"
-                  className={[
-                    'btn bg-neo-primary border-medium border-neo-secondary text-neo-secondary font-black w-full min-w-0 shadow-neo-lg hover:shadow-neo-2xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed',
-                    'text-sm min-[360px]:text-md sm:text-md',
-                    'py-3 min-[360px]:py-4 sm:py-5',
-                    'pl-4 pr-4 min-[360px]:pl-4 min-[360px]:pr-4 sm:pl-6 sm:pr-6',
-                  ].join(' ')}
+                  className="relative w-full min-w-0 py-2 min-[360px]:py-3 text-base min-[360px]:text-sm sm:text-sm font-black uppercase tracking-widest
+                      bg-neo-primary text-neo-secondary border-2 border-neo-secondary
+                      shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] min-[360px]:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]
+                      flex items-center justify-center gap-2 min-[360px]:gap-3 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={isLoading}
                 >
                   {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 min-[360px]:mr-3 min-[360px]:h-6 min-[360px]:w-6 animate-spin shrink-0" />
-                      <span className="truncate">ENTRANDO...</span>
-                    </>
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 min-[360px]:mr-3 min-[360px]:h-6 min-[360px]:w-6 animate-spin shrink-0" />
+                    <span className="truncate">ENTRANDO...</span>
+                  </>
                   ) : (
-                    'ENTRAR'
+                  'ENTRAR'
                   )}
                 </button>
               </div>
@@ -166,7 +172,7 @@ export default function LoginPage() {
 
             <p className="text-sm text-base sm:text-lg text-neo-secondary text-left mt-4 min-[360px]:mt-6 sm:mt-8 font-bold break-words">
               Não tem uma conta?{' '}
-              <Link to="/register" className="text-neo-secondary hover:text-neo-primary underline decoration-2  underline-offset-2 font-black sm:text-sm md:text-base lg:text-lg transition-all duration-200 break-all sm:break-normal">
+              <Link to="/register" className="text-neo-secondary underline decoration-2  underline-offset-2 font-black sm:text-sm md:text-base lg:text-lg transition-all duration-200 break-all sm:break-normal">
                 Criar conta
               </Link>
             </p>

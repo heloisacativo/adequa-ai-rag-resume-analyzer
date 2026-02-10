@@ -38,7 +38,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (!response.ok) {
-        throw new Error("Credenciais inválidas");
+        let errorMessage = "Email ou senha incorretos. Verifique seus dados e tente novamente.";
+        
+        // Tratamento específico por status code
+        if (response.status === 401) {
+          errorMessage = "Email ou senha incorretos. Verifique seus dados e tente novamente.";
+        } else if (response.status === 403) {
+          errorMessage = "Sua conta está inativa. Entre em contato com o suporte.";
+        } else {
+          try {
+            const errorBody = await response.json();
+            const detail = errorBody?.detail ?? errorBody?.message;
+            if (typeof detail === "string" && detail.trim()) {
+              errorMessage = detail.trim();
+            }
+          } catch {
+            // Mantem mensagem padrão
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -49,6 +68,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("user", JSON.stringify({ ...userData, id: userId ?? userData?.id }));
       setUser({ ...userData, id: userId ?? userData?.id } as User);
       return { ...userData, id: userId ?? userData?.id } as User;
+    } catch (error) {
+      if (error instanceof Error) {
+        // Se for um erro de rede (Failed to fetch)
+        if (error.message === "Failed to fetch") {
+          throw new Error("Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.");
+        }
+        // Repassa o erro original se já tiver mensagem customizada
+        throw error;
+      }
+      // Erro genérico
+      throw new Error("Não foi possível fazer login. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
@@ -65,14 +95,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
         body: JSON.stringify({
           email: data.email,
-          password: data.password, // <-- corrigido!
+          password: data.password,
           full_name: data.full_name,
           is_hirer: data.is_hirer,
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Erro ao registrar usuário");
+        let errorMessage = "Não foi possível criar sua conta. Tente novamente.";
+        
+        // Tratamento específico por status code
+        if (response.status === 409) {
+          errorMessage = "Não é possível utilizar este email. Tente fazer login ou use outro email.";
+        } else {
+          try {
+            const errorBody = await response.json();
+            const detail = errorBody?.detail ?? errorBody?.message;
+            if (typeof detail === "string" && detail.trim()) {
+              errorMessage = detail.trim();
+            }
+          } catch {
+            try {
+              const text = await response.text();
+              if (text.trim()) {
+                errorMessage = text.trim();
+              }
+            } catch {
+              // Mantem mensagem padrao
+            }
+          }
+        }
+
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
@@ -82,6 +136,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("token", result.access_token);
       localStorage.setItem("user", JSON.stringify({ ...userData, id: userId ?? userData?.id }));
       setUser({ ...userData, id: userId ?? userData?.id } as User);
+    } catch (error) {
+      if (error instanceof Error) {
+        // Se for um erro de rede (Failed to fetch)
+        if (error.message === "Failed to fetch") {
+          throw new Error("Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.");
+        }
+        // Repassa o erro original se já tiver mensagem customizada
+        throw error;
+      }
+      // Erro genérico
+      throw new Error("Não foi possível criar sua conta. Tente novamente.");
     } finally {
       setIsLoading(false);
     }

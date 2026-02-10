@@ -58,7 +58,7 @@ export function ResumeUploader({ onUploadComplete }: { onUploadComplete?: (index
         </h3>
         
         <p className="text-sm text-base-content/60 mb-4">
-          Arraste ou clique para selecionar (até 20 currículos por vez)
+          Arraste ou clique para selecionar (até 20 currículos por vez, limite total: 50)
         </p>
         
         <button

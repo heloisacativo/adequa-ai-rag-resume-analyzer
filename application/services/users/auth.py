@@ -33,10 +33,7 @@ class AuthenticationService:
         if not user.is_active:
             raise UserInactiveError("User account is inactive")
         
-        print("Senha digitada:", plain_password)
-        print("Hash salvo:", user.hashed_password)
         is_valid = self.password_hasher.verify_password(plain_password, user.hashed_password)
-        print("Senha confere?", is_valid)
         
         if not is_valid:
             raise InvalidCredentialsError("Invalid credentials")

@@ -298,7 +298,7 @@ function Analysis() {
                   <div className="space-y-6">
                     <div className="">
                       <h3 className="text-2xl text-neo-secondary">Adicionar currículos</h3>
-                      <p className="text-neo-secondary/70 font-bold text-sm">Arraste os currículos para análise em PDF ou clique para selecionar.</p>
+                      <p className="text-neo-secondary/70 font-bold text-sm">Arraste os currículos para análise em PDF ou clique para selecionar. Você pode adicionar até 50 currículos no total.</p>
                     </div>
                     
                     <FileInput 

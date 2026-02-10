@@ -80,7 +80,7 @@ export default function ChatHistory() {
               Limite de {MAX_CONVERSATIONS} conversas
             </p>
             <p className="text-sm text-neo-secondary mt-0.5">
-              São mantidas no máximo {MAX_CONVERSATIONS} conversas. Ao criar a 11ª, a mais antiga é excluída automaticamente para liberar espaço.
+              São mantidas no máximo {MAX_CONVERSATIONS} conversas. Ao criar a 11ª, a mais antiga é excluída automaticamente.
             </p>
           </div>
         </div>

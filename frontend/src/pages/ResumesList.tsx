@@ -83,6 +83,18 @@ export default function ResumesList() {
 
   const handleUpload = async () => {
     if (selectedFiles.length === 0) return;
+    
+      const MAX_TOTAL_RESUMES = 50;
+      if (resumes.length + selectedFiles.length > MAX_TOTAL_RESUMES) {
+        const remaining = MAX_TOTAL_RESUMES - resumes.length;
+        toast({
+          title: 'Limite de currículos excedido',
+          description: `Você só pode adicionar mais ${remaining} currículo${remaining !== 1 ? 's' : ''}. Limite máximo: 50 currículos.`,
+          variant: 'error',
+        });
+        return;
+      }
+    
     setIsUploading(true);
 
     try {
@@ -172,9 +184,11 @@ export default function ResumesList() {
   const showLoginMessage = !user?.id;
   const showErrorState = !!resumesError && !loading;
   const showEmptyState = !loading && !resumesError && filteredResumes.length === 0;
+    const MAX_TOTAL_RESUMES = 50;
+    const isAtMaxLimit = resumes.length >= MAX_TOTAL_RESUMES;
   const emptyMessage = resumes.length > 0 && filteredResumes.length === 0
     ? 'Nenhum currículo corresponde aos filtros'
-    : 'Nenhum currículo encontrado';
+      : 'Nenhum currículo encontrado. Você pode adicionar até 50 currículos.';
 
   return (
     <AppLayout>
@@ -184,12 +198,18 @@ export default function ResumesList() {
           <div className="min-w-0">
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase tracking-tighter mb-1 sm:mb-2 truncate">Currículos</h1>
             <p className="text-sm sm:text-base text-gray-600 font-medium">
-              Currículos adicionados
+                {resumes.length}/{MAX_TOTAL_RESUMES} currículos adicionados
             </p>
           </div>
           <button
             onClick={() => setShowUpload(!showUpload)}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 w-full md:w-auto bg-neo-primary text-neo-secondary tracking-wider border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)] hover:bg-gray-100 hover:text-black hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 font-bold text-sm sm:text-base shrink-0"
+              disabled={isAtMaxLimit}
+              className={cn(
+                "flex items-center justify-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 w-full md:w-auto bg-neo-primary text-neo-secondary tracking-wider border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)] transition-all duration-200 font-bold text-sm sm:text-base shrink-0",
+                isAtMaxLimit 
+                  ? "opacity-50 cursor-not-allowed" 
+                  : "hover:bg-gray-100 hover:text-black hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+              )}
           >
             <Plus className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
             {showUpload ? 'Cancelar' : 'Adicionar Currículos'}
@@ -200,7 +220,7 @@ export default function ResumesList() {
         {showUpload && (
           <div className="bg-white border-2 border-black p-4 sm:p-6 md:p-8 rounded-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-in slide-in-from-top-4 duration-300">
             <h3 className="text-xl sm:text-2xl font-black uppercase mb-4 sm:mb-6 flex items-center gap-2">
-              <Upload className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" /> Upload de Arquivos
+                <Upload className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" /> Upload de Arquivos ({resumes.length}/{MAX_TOTAL_RESUMES})
             </h3>
 
             <div className="space-y-4 sm:space-y-6">
@@ -219,7 +239,7 @@ export default function ResumesList() {
                   </div>
                   <p className="text-base sm:text-lg font-black uppercase">Clique ou Arraste arquivos aqui</p>
                   <p className="text-xs sm:text-sm font-bold text-gray-500 mt-1 sm:mt-2">
-                    PDF, DOCX, DOC (até 20 por vez, máx. 10MB cada)
+                      PDF, DOCX, DOC (até 20 por vez, limite total: 50 currículos)
                   </p>
                 </div>
               </div>

@@ -16,6 +16,7 @@ import {
   FolderOpen,
 } from "lucide-react";
 import adequa from "../../assets/adequa.png";
+import adequaCollapsed from "../../assets/adequa-collapsed-logo.png";
 
 const recruiterNavItems = [
   { to: "/dashboard", label: "Início", icon: LayoutDashboard },
@@ -79,17 +80,24 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           sidebarOpen ? "translate-x-0 shadow-[4px_0_24px_rgba(0,0,0,0.15)]" : "-translate-x-full lg:shadow-none"
         )}
       >
-        <div className="h-12 min-[360px]:h-14 sm:h-16 lg:h-20 flex items-center justify-between gap-2 px-2 min-[360px]:px-3 sm:px-4 border-b-2 border-black bg-white shrink-0">
+        <div className="h-12 min-[360px]:h-14 sm:h-16 lg:h-20 flex items-center justify-center px-2 min-[360px]:px-3 sm:px-4 border-b-2 border-black bg-white shrink-0 relative">
+          {/* Logo colapsada em telas menores */}
+          <img
+            src={adequaCollapsed}
+            alt="Adequa"
+            className="h-6 min-[360px]:h-7 sm:h-8 w-auto object-contain min-w-0 lg:hidden"
+          />
+          {/* Logo completa apenas em telas grandes */}
           <img
             src={adequa}
             alt="Adequa"
-            className="h-5 min-[360px]:h-6 sm:h-7 lg:h-8 w-auto max-w-[100px] min-[360px]:max-w-[120px] sm:max-w-[140px] object-contain min-w-0"
+            className="hidden lg:block h-8 w-auto max-w-[140px] object-contain min-w-0"
           />
           <button
             type="button"
             aria-label="Fechar menu"
             onClick={() => setSidebarOpen(false)}
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-gray-100 active:bg-gray-200 lg:hidden shrink-0 -mr-1"
+            className="absolute right-2 min-[360px]:right-3 sm:right-4 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-gray-100 active:bg-gray-200 lg:hidden shrink-0"
           >
             <X className="w-5 h-5 min-[360px]:w-6 min-[360px]:h-6" />
           </button>
@@ -166,7 +174,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               handleLogout();
               setSidebarOpen(false);
             }}
-            className="flex items-center gap-2 w-full px-3 py-2.5 border-2 border-black rounded-lg font-bold text-neo-primary hover:bg-gray-100 active:bg-gray-200 transition-colors"
+            className="text-sm flex items-center gap-2 w-full px-3 py-2.5 border-2 border-black rounded-lg font-bold text-neo-secondary hover:bg-gray-100 active:bg-gray-200 transition-colors"
           >
             <LogOut className="w-4 h-4 shrink-0" />
             SAIR DA CONTA

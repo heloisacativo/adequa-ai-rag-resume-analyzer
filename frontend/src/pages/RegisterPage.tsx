@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Briefcase, User, Loader2, Building2, UserCircle, Mail, CheckCircle, Clock } from 'lucide-react';
+import { Briefcase, User, Loader2, Building2, UserCircle, Mail, CheckCircle, Clock, ChevronRight } from 'lucide-react';
 import { useToast } from '../hooks/use-toats';
 import { emailVerificationService } from '../lib/emailService';
 import adequa from '../../src/assets/adequa.png';
@@ -191,7 +191,7 @@ export default function RegisterPage() {
     } catch (error) {
       toast({
         title: 'Erro no cadastro',
-        description: 'Não foi possível criar sua conta. Tente novamente.',
+        description: error instanceof Error ? error.message : 'Não foi possível criar sua conta. Tente novamente.',
         variant: 'error',
       });
     }
@@ -217,16 +217,14 @@ export default function RegisterPage() {
             {/* Passo 1: Verificação de Email */}
             {step === 'email-verification' && (
               <>
-                <h2 className="text-xl min-[360px]:text-2xl font-black text-neo-secondary mt-3 flex items-center gap-2 justify-center">
-                  <Mail className="w-6 h-6" />
-                  VERIFICAR EMAIL
-                </h2>
+             
+            <h2 className="text-xl min-[360px]:text-2xl font-black/30 text-left text-neo-secondary font-medium">CRIAR CONTA</h2>
+            <p className="text-sm min-[360px]:text-base text-neo-secondary/60 text-left">
+            <span className="label-text text-sm min-[360px]:text-base font-black/30 text-neo-secondary break-words">Digite seu email e nome completo para começar.</span>
+            </p>
 
                 {!verificationSent ? (
                   <>
-                    <p className="text-sm text-gray-600 text-center mt-2 mb-4">
-                      Digite seu email e nome para receber um código de verificação.
-                    </p>
                     
                     <div className="space-y-2 mt-4">
                       <NeoInput
@@ -258,23 +256,22 @@ export default function RegisterPage() {
                         disabled={isLoading}
                         className="
                           
-                          relative w-full min-w-0 py-2 min-[360px]:py-3 text-base min-[360px]:text-sm sm:text-sm font-black uppercase tracking-widest
-                          bg-neo-primary text-neo-secondary border-2 border-neo-secondary
-                          shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] min-[360px]:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]
-                          flex items-center justify-center gap-2 min-[360px]:gap-3 cursor-pointer
-                          hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all
+                            relative w-full min-w-0 py-2 min-[360px]:py-3 text-base min-[360px]:text-sm sm:text-sm font-black uppercase tracking-widest
+                            bg-neo-primary text-neo-secondary border-2 border-neo-secondary
+                            shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] min-[360px]:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]
+                            flex items-center justify-center gap-2 min-[360px]:gap-3 cursor-pointer
                         "
                       >
                         {isLoading ? (
                           <>
                             <Loader2 className="h-5 w-5 min-[360px]:h-6 min-[360px]:w-6 animate-spin shrink-0" />
-                            <span className="truncate">ENVIANDO...</span>
+                            <span className="truncate">Carregando...</span>
                           </>
                         ) : (
-                          <>
-                            <Mail className="w-5 h-5 min-[360px]:w-6 min-[360px]:h-6" />
-                            ENVIAR CÓDIGO
-                          </>
+                            <>
+                            <span>CONTINUAR</span>
+                            <ChevronRight className="h-5 w-5 min-[360px]:h-6 min-[360px]:w-6 shrink-0" />
+                            </>
                         )}
                       </button>
 
@@ -282,7 +279,7 @@ export default function RegisterPage() {
                         Já tem uma conta?{' '}
                         <Link 
                           to="/login" 
-                          className="text-neo-secondary hover:text-neo-primary underline decoration-2 min-[360px]:decoration-4 underline-offset-2 font-black text-base min-[360px]:text-lg sm:text-xl transition-all duration-200"
+                          className="text-neo-secondary underline decoration-2 min-[360px]:decoration-4 underline-offset-2 font-black text-base min-[360px]:text-lg sm:text-xl transition-all duration-200"
                         >
                           Entrar
                         </Link>
@@ -297,7 +294,7 @@ export default function RegisterPage() {
                         <span className="font-bold text-neo-secondary">Código enviado!</span>
                       </div>
                       <p className="text-sm text-neo-secondary text-center">
-                        Um código de 6 dígitos foi enviado para <span className="font-bold">{email}</span>
+                        Enviamos um código de 6 dígitos para <span className="font-bold">{email}</span>
                       </p>
                       {codeExpiration && (
                         <p className="text-xs text-neo-secondary text-center mt-2 flex items-center justify-center gap-1">
@@ -308,13 +305,13 @@ export default function RegisterPage() {
                     </div>
 
                     <p className="text-sm text-gray-600 text-center mb-4">
-                      Digite o código recebido no seu email.
+                      Digite o código que você recebeu.
                     </p>
 
                     <div className="space-y-2 mt-4">
                       <NeoInput
                         id="verificationCode"
-                        label="Código de Verificação"
+                        label="Código"
                         type="text"
                         placeholder="000000"
                         value={verificationCode}
@@ -332,11 +329,10 @@ export default function RegisterPage() {
                         type="submit"
                         disabled={isLoading || verificationCode.length !== 6}
                         className="
-                          relative w-full min-w-0 py-2 min-[360px]:py-3 text-base min-[360px]:text-lg sm:text-xl font-black uppercase tracking-widest
+                          relative w-full min-w-0 py-2 min-[360px]:py-3 text-md min-[360px]:text-md sm:text-md font-black uppercase tracking-widest
                           bg-neo-primary text-neo-secondary border-2 border-neo-secondary
                           shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] min-[360px]:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]
                           flex items-center justify-center gap-2 min-[360px]:gap-3 cursor-pointer
-                          hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all
                           disabled:opacity-50 disabled:cursor-not-allowed
                         "
                       >
@@ -347,7 +343,6 @@ export default function RegisterPage() {
                           </>
                         ) : (
                           <>
-                            <CheckCircle className="w-5 h-5 min-[360px]:w-6 min-[360px]:h-6" />
                             VERIFICAR CÓDIGO
                           </>
                         )}
@@ -360,7 +355,7 @@ export default function RegisterPage() {
                           setVerificationCode('');
                           setCodeExpiration(null);
                         }}
-                        className="text-sm text-neo-secondary underline hover:no-underline font-bold text-center"
+                        className="text-sm text-neo-secondary underline cursor-pointer font-bold text-center"
                       >
                         Usar outro email
                       </button>
@@ -373,11 +368,12 @@ export default function RegisterPage() {
             {/* Passo 2: Detalhes da Conta */}
             {step === 'account-details' && (
               <>
-                <h2 className="text-xl min-[360px]:text-2xl font-black text-neo-secondary mt-3">CRIAR CONTA</h2>
+                <h2 className="text-xl min-[360px]:text-2xl font-black text-neo-secondary mt-3">FINALIZAR CADASTRO</h2>
 
-                <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-3 mt-4 mb-4">
-                  <p className="text-sm text-blue-700">
-                    <span className="font-bold">Email verificado:</span> {email}
+                <div className=" bg-neo-primary border-2 border-neo-secondary rounded-lg p-3 mt-4 mb-4">
+                  <p className="flex flex-col text-sm text-neo-secondary">
+                    <span className="font-bold">Quase lá!</span>
+                    <span>Complete seu cadastro abaixo</span>
                   </p>
                 </div>
 
@@ -498,11 +494,10 @@ export default function RegisterPage() {
                       type="submit"
                       disabled={isLoading}
                       className="
-                        relative w-full min-w-0 py-2 min-[360px]:py-1 text-base min-[360px]:text-lg sm:text-xl font-black uppercase tracking-widest
+                        relative w-full min-w-0 py-2 min-[360px]:py-1 text-base min-[360px]:text-md sm:text-md font-black uppercase tracking-widest
                         bg-neo-primary text-neo-secondary border-2 border-neo-secondary
                         shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] min-[360px]:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]
                         flex items-center justify-center gap-2 min-[360px]:gap-3 cursor-pointer
-                        hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all
                       "
                     >
                       {isLoading ? (
@@ -522,7 +517,7 @@ export default function RegisterPage() {
                         setVerificationCode('');
                         setVerificationSent(false);
                       }}
-                      className="text-sm text-neo-secondary underline hover:no-underline font-bold text-center"
+                      className="text-md text-neo-secondary underline cursor-pointer font-bold text-center"
                     >
                       Voltar
                     </button>

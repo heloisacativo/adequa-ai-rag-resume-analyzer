@@ -31,11 +31,11 @@ class UploadResumesUseCase:
         2. Indexa no vector store
         3. Persiste metadados no DB
         """
-        # Verificar limite de 40 currículos por usuário
+        # Verificar limite de 50 currículos por usuário
         existing_resumes_count = await self.repository.count_by_user_id(user_id)
-        if existing_resumes_count >= 40:
+        if existing_resumes_count >= 50:
             from application.exceptions import BusinessRuleViolationError
-            raise BusinessRuleViolationError("Limite máximo de 40 currículos por usuário atingido")
+            raise BusinessRuleViolationError("Limite máximo de 50 currículos por usuário atingido")
 
         # Não permitir currículos com o mesmo nome de arquivo (por usuário)
         existing_resumes = await self.repository.get_by_user_id(user_id)
