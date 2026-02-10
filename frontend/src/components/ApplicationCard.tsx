@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { JobApplication } from '../types/application';
-import { Calendar, X, Building2 } from 'lucide-react';
+import { Calendar, X, Building2, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useApplications } from '../contexts/ApplicationContext';
+import { useToast } from '../hooks/use-toats';
 
 interface ApplicationCardProps {
   application: JobApplication;
@@ -11,6 +13,10 @@ interface ApplicationCardProps {
 
 export function ApplicationCard({ application, isDragging }: ApplicationCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const { deleteApplication } = useApplications();
+  const { toast } = useToast();
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR', {
@@ -24,6 +30,32 @@ export function ApplicationCard({ application, isDragging }: ApplicationCardProp
     if (isDragging) return;
     e.stopPropagation();
     setIsModalOpen(true);
+  };
+
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    setShowDeleteConfirm(false);
+    setIsDeleting(true);
+    try {
+      await deleteApplication(application.id);
+      toast({
+        title: 'Candidatura excluída',
+        description: 'A candidatura foi removida com sucesso.',
+        variant: 'success',
+      });
+      setIsModalOpen(false);
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao excluir',
+        description: error.message || 'Não foi possível excluir a candidatura.',
+        variant: 'error',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -55,6 +87,26 @@ export function ApplicationCard({ application, isDragging }: ApplicationCardProp
         }}
         onClick={handleCardClick}
       >
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDeleteClick();
+          }}
+          disabled={isDeleting}
+          className={cn(
+            'absolute top-2 right-2 z-10',
+            'p-1.5 rounded-lg',
+            'bg-neo-blue text-neo-secondary border-2 border-black',
+            'active:scale-95',
+            'transition-all duration-200',
+            'disabled:opacity-50 disabled:cursor-not-allowed',
+            'cursor-pointer'
+          )}
+          title="Excluir candidatura"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+
         <div className="flex flex-col gap-2">
           <p className="text-sm font-black text-neo-secondary leading-tight">
             {application.position}
@@ -92,10 +144,10 @@ export function ApplicationCard({ application, isDragging }: ApplicationCardProp
                     <Building2 className="w-5 h-5 text-neo-secondary" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-neo-primary uppercase tracking-tight">
+                    <h3 className="text-xl font-black text-neo-secondary uppercase tracking-tight">
                       {application.position}
                     </h3>
-                    <p className="text-sm font-bold text-neo-primary">
+                    <p className="text-sm font-bold text-neo-secondary">
                       {application.company}
                     </p>
                   </div>
@@ -103,9 +155,8 @@ export function ApplicationCard({ application, isDragging }: ApplicationCardProp
                 <button
                   className="
                     p-1.5 rounded-lg
-                    text-neo-primary bg-white border-2 border-neo-secondary
+                    text-neo-secondary bg-white border-2 border-neo-secondary
                     transition-all duration-200
-                    hover:bg-neo-primary hover:text-white
                     active:translate-x-0.5 active:translate-y-0.5 cursor-pointer
                   "
                   onClick={() => setIsModalOpen(false)}
@@ -116,7 +167,7 @@ export function ApplicationCard({ application, isDragging }: ApplicationCardProp
 
               <div className="space-y-4">
                 {/* Data */}
-                <div className="flex items-center gap-2 text-sm font-bold text-neo-primary">
+                <div className="flex items-center gap-2 text-sm font-bold text-neo-secondary">
                   <Calendar className="w-4 h-4" />
                   <span>Data da aplicação: {formatDate(application.date)}</span>
                 </div>
@@ -131,6 +182,68 @@ export function ApplicationCard({ application, isDragging }: ApplicationCardProp
                     </p>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
+
+      {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO */}
+      {showDeleteConfirm && createPortal(
+        <>
+          <div 
+            className="fixed inset-0 bg-black/50 z-[10002]"
+            onClick={() => setShowDeleteConfirm(false)}
+          />
+          
+          <div className="fixed inset-0 flex items-center justify-center p-4 z-[10003] pointer-events-none">
+            <div 
+              className="relative w-full max-w-md bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-4">
+             
+                <h3 className="text-xl font-black text-black uppercase">
+                  Confirmar Exclusão
+                </h3>
+              </div>
+
+              <p className="text-sm font-medium text-gray-700 mb-6">
+                Tem certeza que deseja excluir a candidatura para <strong>{application.position}</strong> na empresa <strong>{application.company}</strong>? Esta ação não pode ser desfeita.
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="
+                    flex-1 py-3 px-4
+                    bg-white text-black
+                    border-2 border-black
+                    font-bold uppercase text-sm
+                    hover:bg-gray-100
+                    active:translate-x-0.5 active:translate-y-0.5
+                    transition-all duration-200 cursor-pointer
+                  "
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  disabled={isDeleting}
+                  className="
+                    flex-1 py-3 px-4
+                    bg-neo-blue text-neo-secondary
+                    border-2 border-black
+                    font-bold uppercase text-sm
+                    shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
+                    active:translate-x-0.5 active:translate-y-0.5 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                    transition-all duration-200 cursor-pointer
+                  "
+                >
+                  {isDeleting ? 'Excluindo...' : 'Sim, Excluir'}
+                </button>
               </div>
             </div>
           </div>
