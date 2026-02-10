@@ -20,8 +20,18 @@ export function useResumes(userId?: string) {
       const response = await resumeService.listResumes();
       setResumes(response.resumes);
     } catch (e) {
-      console.error('Erro ao carregar currículos:', e);
-      setError(e instanceof Error ? e.message : 'Erro ao carregar currículos');
+      const errorMessage = e instanceof Error ? e.message : 'Erro ao carregar currículos';
+      
+      // Se for erro de autenticação, limpar token e redirecionar
+      if (errorMessage.includes('Could not validate credentials') || 
+          errorMessage.includes('401') ||
+          errorMessage.includes('Unauthorized')) {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+        return;
+      }
+      
+      setError(errorMessage);
       setResumes([]);
     } finally {
       setIsLoading(false);

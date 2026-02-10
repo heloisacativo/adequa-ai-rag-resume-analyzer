@@ -2,11 +2,14 @@ from typing import Annotated
 from pathlib import Path
 from uuid import UUID
 import os
+import logging
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from fastapi.responses import FileResponse
 from dishka.integrations.fastapi import FromDishka, inject
 from presentation.api.rest.v1.dependencies import get_current_user, CurrentUser
+
+logger = logging.getLogger(__name__)
 
 from application.use_cases.resumes.upload_resumes import UploadResumesUseCase
 from application.use_cases.resumes.ensure_upload_user import (
@@ -25,6 +28,18 @@ from presentation.api.rest.v1.schemas.resumes import (
 )
 
 router = APIRouter(prefix="/resumes", tags=["Resumes"])
+
+@router.get("/debug-user")
+@inject
+async def debug_current_user(
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """Endpoint de debug para verificar o usuário atual"""
+    return {
+        "user_id": current_user.id,
+        "email": current_user.email,
+        "full_name": current_user.full_name
+    }
 
 @router.post("/upload", response_model=UploadResponse)
 @inject
@@ -112,7 +127,24 @@ async def list_resumes(
         user_id = UUID(current_user.id)
     except (ValueError, TypeError):
         raise HTTPException(status_code=400, detail="ID do usuário inválido")
+    
+    print(f"\n{'='*80}")
+    print(f"📋 LIST RESUMES REQUEST")
+    print(f"   User ID from token: {user_id}")
+    print(f"   User type: {current_user.type}")
+    print(f"{'='*80}\n")
+    
     resumes_dto = await use_case.execute(user_id=user_id)
+    
+    print(f"📊 CURRÍCULOS ENCONTRADOS: {len(resumes_dto)}")
+    for idx, r in enumerate(resumes_dto, 1):
+        print(f"   {idx}. Resume ID: {r.resume_id}")
+        print(f"      Nome: {r.candidate_name}")
+        print(f"      Arquivo: {r.file_name}")
+        print(f"      Indexado: {r.is_indexed}")
+        print(f"      Vector Index: {r.vector_index_id}")
+        print()
+    print(f"{'='*80}\n")
     
     resumes_schema = [
         ResumeSchema(
@@ -141,14 +173,47 @@ async def download_resume(
     """Download um currículo específico"""
     try:
         user_id = UUID(current_user.id)
-    except (ValueError, TypeError):
-        raise HTTPException(status_code=400, detail="ID do usuário inválido")
+        resume_uuid = UUID(resume_id)
+    except (ValueError, TypeError) as e:
+        raise HTTPException(status_code=400, detail=f"ID inválido: {str(e)}")
+    
+    print(f"\n{'='*80}")
+    print(f"🔍 DOWNLOAD REQUEST")
+    print(f"   User ID: {user_id}")
+    print(f"   Resume ID: {resume_uuid}")
+    print(f"{'='*80}\n")
+    
+    # Buscar todos os currículos do usuário
     resumes_dto = await use_case.execute(user_id=user_id)
     
-    resume = next((r for r in resumes_dto if str(r.resume_id) == resume_id), None)
+    print(f"📊 CURRÍCULOS DO USUÁRIO: {len(resumes_dto)} encontrado(s)")
+    for idx, r in enumerate(resumes_dto, 1):
+        print(f"   {idx}. ID: {r.resume_id}")
+        print(f"      Nome: {r.candidate_name}")
+        print(f"      Arquivo: {r.file_name}")
+        print(f"      Path: {r.file_path}")
+        print(f"      Indexado: {r.is_indexed}")
+        print(f"      Vector Index: {r.vector_index_id}")
+        print()
+    
+    # Buscar o currículo específico
+    resume = next((r for r in resumes_dto if r.resume_id == resume_uuid), None)
     
     if not resume:
-        raise HTTPException(status_code=404, detail="Currículo não encontrado")
+        print(f"❌ CURRÍCULO NÃO ENCONTRADO!")
+        print(f"   Procurado: {resume_uuid}")
+        print(f"   Disponíveis: {[r.resume_id for r in resumes_dto]}")
+        print(f"{'='*80}\n")
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Currículo {resume_id} não encontrado ou não pertence a você. Total de currículos: {len(resumes_dto)}"
+        )
+    
+    print(f"✅ CURRÍCULO ENCONTRADO:")
+    print(f"   Nome: {resume.candidate_name}")
+    print(f"   Arquivo: {resume.file_name}")
+    print(f"   Path: {resume.file_path}")
+    print(f"{'='*80}\n")
     
     file_path_str = str(resume.file_path)
     # No Windows, path pode estar como sqlite:\pdf\...; normalizar para detectar storage remoto
