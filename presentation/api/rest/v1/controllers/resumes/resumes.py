@@ -34,7 +34,7 @@ async def upload_resumes(
     ensure_upload_user: FromDishka[EnsureResumeUploadUserUseCase] = None,
     current_user: CurrentUser = Depends(get_current_user)
 ):
-    """Upload e indexa currículos - até 20 currículos por vez (acumulativo por usuário)."""
+    """Upload e indexa currículos - até 20 currículos por vez (limite total: 50 por usuário)."""
     
     if len(files) == 0:
         raise HTTPException(
@@ -44,7 +44,7 @@ async def upload_resumes(
     if len(files) > 20:
         raise HTTPException(
             status_code=400,
-            detail="Máximo de 20 currículos por vez. Envie no máximo 20 arquivos."
+            detail="Máximo de 20 currículos por vez. Limite total: 50 currículos por usuário."
         )
     
     # Converte UploadFile para (filename, bytes)
