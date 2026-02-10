@@ -73,12 +73,12 @@ export function KanbanColumn({ status, applications }: KanbanColumnProps) {
         </div>
       </div>
 
-      <div className="flex-1 p-4 pb-8 space-y-4 bg-gray-50" style={{ minHeight: 'fit-content' }}>
+      <div className="flex-1 p-4 pb-8 flex flex-col gap-2 bg-gray-50" style={{ minHeight: 'fit-content' }}>
         {applications.map(app => (
           <ApplicationCard key={app.id} application={app} />
         ))}
 
-        {applications.length === 0 && (
+        {applications.length === 0 && ( 
           <div className="flex flex-col items-center justify-center min-h-[200px] h-full border-4 border-dashed border-gray-300 bg-white p-4">
             <div className="mb-4 opacity-30">
               <Icon className="w-12 h-12 text-black" />

@@ -60,7 +60,7 @@ export function ApplicationCard({ application, isDragging }: ApplicationCardProp
             {application.position}
           </p>
           
-          <div className="flex items-center gap-2 text-sm font-bold text-neo-primary">
+          <div className="flex items-center gap-2 text-sm font-bold text-neo-secondary">
             <Calendar className="w-4 h-4" />
             <span>Data: {formatDate(application.date)}</span>
           </div>
