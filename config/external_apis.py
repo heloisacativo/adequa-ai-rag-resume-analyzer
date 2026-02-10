@@ -42,6 +42,7 @@ class ExternalAPISettings(BaseSettings):
     smtp_user: str = Field(default="", env="SMTP_USER")
     email_sender: str = Field(default="", env="EMAIL_SENDER")
     email_password: str = Field(default="", env="EMAIL_PASSWORD")
+    brevo_api_key: str = Field(default="", env="BREVO_API_KEY")  
 
     class Config:
         env_file = ".env"
