@@ -28,7 +28,6 @@ export function AddApplicationModal() {
     
     try {
       const token = localStorage.getItem('token');
-      // Ajuste a URL conforme necessário para sua API
       const response = await fetch(`${API_URL}/api/v1/job-applications/`, {
         method: 'POST',
         headers: {
