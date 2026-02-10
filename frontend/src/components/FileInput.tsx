@@ -3,8 +3,7 @@ import { useState, useMemo } from "react";
 import { resumeService } from "../lib/api";
 import { useSavedIndexes } from "../hooks/useSavedIndexes";
 import { useToast } from "../hooks/use-toats";
-import { Upload, FileUp, AlertCircle } from "lucide-react"; // Adicionei ícones para polimento visual (opcional)
-
+import { Upload, FileUp, AlertCircle, X, Trash2 } from "lucide-react"; 
 interface FileInputProps {
   label?: string;
   setIndexId: (id: string) => void;
@@ -12,18 +11,16 @@ interface FileInputProps {
 }
 
 const FileInput = ({ label, setIndexId, onSuccess }: FileInputProps) => {
-  const [files, setFiles] = useState<FileList | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const { loadIndexes } = useSavedIndexes();
   const { toast } = useToast();
 
-  // Validar se todos os arquivos são PDFs
   const fileValidation = useMemo(() => {
-    if (!files) return { isValid: true, pdfCount: 0, nonPdfCount: 0, nonPdfFiles: [] as string[] };
+    if (!files || files.length === 0) return { isValid: true, pdfCount: 0, nonPdfCount: 0, nonPdfFiles: [] as string[] };
     
-    const filesArray = Array.from(files);
-    const pdfFiles = filesArray.filter(file => file.type === 'application/pdf');
-    const nonPdfFiles = filesArray.filter(file => file.type !== 'application/pdf');
+    const pdfFiles = files.filter(file => file.type === 'application/pdf');
+    const nonPdfFiles = files.filter(file => file.type !== 'application/pdf');
     
     return {
       isValid: nonPdfFiles.length === 0,
@@ -37,37 +34,39 @@ const FileInput = ({ label, setIndexId, onSuccess }: FileInputProps) => {
     const selectedFiles = event.target.files;
     if (!selectedFiles) return;
 
-    // Limita a 20 arquivos
-    if (selectedFiles.length > 20) {
+    if (selectedFiles.length > 50) {
       toast({
         title: 'Limite excedido',
-        description: 'Você pode selecionar no máximo 20 currículos por vez. Limite total: 50 currículos.',
+        description: 'Você pode selecionar no máximo 50 currículos por vez.',
         variant: 'error',
       });
       return;
     }
 
-    setFiles(selectedFiles);
+    setFiles(Array.from(selectedFiles));
+    event.target.value = '';
+  };
+
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const clearAllFiles = () => {
+    setFiles([]);
   };
 
   const handleUpload = async () => {
-    if (!files) return;
+    if (!files || files.length === 0) return;
 
     setUploading(true);
 
     try {
-      // Converte FileList para Array<File>
-      const filesArray = Array.from(files);
-      
-      const data = await resumeService.uploadResumes(filesArray);
-      
-      console.log("Upload bem-sucedido:", data);
-      console.log("vector_index_id recebido:", data.vector_index_id);
+      const data = await resumeService.uploadResumes(files);
+
 
       const indexId = data.vector_index_id;
       setIndexId(indexId);
       
-      // Recarrega os índices do servidor (que agora inclui o novo)
       await loadIndexes();
       
       toast({
@@ -76,10 +75,8 @@ const FileInput = ({ label, setIndexId, onSuccess }: FileInputProps) => {
         variant: 'success',
       });
       
-      // Limpa a seleção de arquivos
-      setFiles(null);
+      setFiles([]);
       
-      // Chama callback de sucesso se fornecido
       onSuccess?.();
       
     } catch (error) {
@@ -103,7 +100,6 @@ const FileInput = ({ label, setIndexId, onSuccess }: FileInputProps) => {
       )}
       
       <div className="flex flex-col sm:flex-row gap-3 items-stretch">
-        {/* INPUT DE ARQUIVO ESTILIZADO */}
         <div className="relative flex-1 group">
           <input
             type="file"
@@ -138,10 +134,9 @@ const FileInput = ({ label, setIndexId, onSuccess }: FileInputProps) => {
           </label>
         </div>
 
-        {/* BOTÃO DE ENVIO */}
         <button
           onClick={handleUpload}
-          disabled={!files || uploading || !fileValidation.isValid}
+          disabled={files.length === 0 || uploading || !fileValidation.isValid}
           className="
             flex items-center justify-center gap-2
             px-6 py-3
@@ -172,31 +167,92 @@ const FileInput = ({ label, setIndexId, onSuccess }: FileInputProps) => {
         </button>
       </div>
       
-      {/* Feedback visual sutil de quantos arquivos selecionados (opcional, mas ajuda na UX) */}
       {files && files.length > 0 && (
-        <>
-          {fileValidation.isValid ? (
-            <p className="text-xs font-bold text-green-700 mt-1 ml-1 flex items-center gap-1 bg-green-50 border border-green-300 rounded px-2 py-1">
-              <FileUp className="w-3 h-3" />
-              {fileValidation.pdfCount} arquivo(s) PDF pronto(s) para envio (máx. 20 por vez, limite total: 50 currículos)
-            </p>
-          ) : (
-            <div className="text-xs font-bold text-red-700 mt-1 ml-1 bg-red-50 border-2 border-red-500 rounded px-3 py-2">
-              <div className="flex items-center gap-1 mb-1">
-                <AlertCircle className="w-4 h-4" />
-                Apenas arquivos PDF são aceitos
-              </div>
-              <div className="text-[11px] font-medium">
-                ❌ {fileValidation.nonPdfCount} arquivo(s) inválido(s): {fileValidation.nonPdfFiles.join(', ')}
-              </div>
-              {fileValidation.pdfCount > 0 && (
-                <div className="text-[11px] font-medium text-green-700 mt-1">
-                  ✅ {fileValidation.pdfCount} PDF(s) válido(s)
+        <div className="mt-2 space-y-3">
+          <div className="flex items-center justify-between bg-gray-50 border-2 border-black rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2">
+              {fileValidation.isValid ? (
+                <div className="flex items-center gap-2">
+                  <FileUp className="w-4 h-4 text-neo-secondary" />
+                  <span className="text-sm font-bold text-neo-secondary">
+                    {fileValidation.pdfCount} PDF{fileValidation.pdfCount !== 1 ? 's' : ''} pronto{fileValidation.pdfCount !== 1 ? 's' : ''} para envio
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-600" />
+                  <span className="text-sm font-bold text-red-700">
+                    {fileValidation.pdfCount} válido{fileValidation.pdfCount !== 1 ? 's' : ''}, {fileValidation.nonPdfCount} inválido{fileValidation.nonPdfCount !== 1 ? 's' : ''}
+                  </span>
                 </div>
               )}
             </div>
-          )}
-        </>
+            
+            <button
+              onClick={clearAllFiles}
+              className="flex items-center gap-1 text-xs font-bold text-red-600 hover:text-red-800 hover:bg-red-50 px-2 py-1 rounded transition-colors"
+              title="Limpar todos os arquivos"
+            >
+              <Trash2 className="w-3 h-3" />
+              Limpar Tudo
+            </button>
+          </div>
+
+          <div className="max-h-64 overflow-y-auto space-y-2 bg-white border-2 border-black rounded-lg p-3">
+            {files.map((file, index) => {
+              const isPdf = file.type === 'application/pdf';
+              const fileSize = (file.size / 1024).toFixed(1); 
+              
+              return (
+                <div
+                  key={`${file.name}-${index}`}
+                  className={`
+                    flex items-center justify-between gap-3 p-2 rounded-lg border-2 transition-all
+                    ${isPdf 
+                      ? 'bg-neo-primary border-neo-secondary' 
+                      : 'bg-red-50 border-red-300 hover:bg-red-100'
+                    }
+                  `}
+                >
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    {isPdf ? (
+                      <FileUp className="w-4 h-4 text-neo-secondary shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                    )}
+                    
+                    <div className="min-w-0 flex-1">
+                      <p className={`text-sm font-medium truncate ${isPdf ? 'text-neo-secondary' : 'text-red-800'}`} title={file.name}>
+                        {file.name}
+                      </p>
+                      <p className={`text-xs ${isPdf ? 'text-neo-secondary' : 'text-red-600'}`}>
+                        {fileSize} KB {!isPdf && '• Apenas PDFs são aceitos'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={() => removeFile(index)}
+                    className={`
+                      shrink-0 p-1.5 rounded-lg border-2 transition-all
+                      ${isPdf 
+                        ? 'bg-white border-neo-secondary text-neo-secondary hover:bg-neo-secondary hover:text-white' 
+                        : 'bg-white border-red-400 text-red-700 hover:bg-red-200 hover:border-red-500'
+                      }
+                    `}
+                    title="Remover arquivo"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="text-xs text-gray-600 text-center font-medium">
+            Máximo: 50 currículos por envio
+          </p>
+        </div>
       )}
     </div>
   );
