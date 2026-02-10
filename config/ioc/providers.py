@@ -37,7 +37,7 @@ from config.base import Settings  # sua classe de configuração
 from infrastructures.cache.redis_client import RedisCacheClient
 from infrastructures.db.mappers.users.user_db_mapper import UserDBMapper
 from infrastructures.repositories.email_verification_repository import InMemoryEmailVerificationRepository
-from infrastructures.http.smtp_email_service import SMTPEmailService
+from infrastructures.http.brevo_api_email_service import BrevoAPIEmailService
 from infrastructures.db.mappers.jobs.job_db_mapper import JobDBMapper
 from infrastructures.db.repositories.users.user import UserRepositorySQLAlchemy
 from infrastructures.db.repositories.jobs.job import JobRepositorySQLAlchemy
@@ -218,9 +218,9 @@ class RepositoryProvider(Provider):
     @provide(scope=Scope.APP)
     def get_email_service(self, settings: Settings) -> EmailServiceProtocol:
         """
-        Provides an EmailServiceProtocol implementation (SMTP via Brevo).
+        Provides an EmailServiceProtocol implementation (Brevo API - compatível com Hugging Face Spaces).
         """
-        return SMTPEmailService(settings=settings.external_apis)
+        return BrevoAPIEmailService(settings=settings.external_apis)
 
 
 class UnitOfWorkProvider(Provider):
