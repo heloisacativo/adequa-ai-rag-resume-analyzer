@@ -1,73 +1,53 @@
-# React + TypeScript + Vite
+# Adequa AI - Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend do sistema Adequa AI, construído com React, TypeScript e Vite.
 
-Currently, two official plugins are available:
+## 🚀 Tecnologias
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **React 19**: biblioteca UI com hooks modernos
+- **TypeScript**: type safety e melhor DX
+- **Vite**: build tool ultra-rápido com HMR
+- **TailwindCSS 4**: utility-first CSS framework
+- **DaisyUI**: componentes prontos em estilo neobrutalist
+- **React Router**: roteamento client-side
+- **TanStack Query**: gerenciamento de estado assíncrono
+- **Axios**: cliente HTTP
+- **Lucide React**: ícones modernos
 
-## React Compiler
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 📂 Estrutura de Pastas
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+src/
+├── assets/          # Imagens, logos, etc
+├── components/      # Componentes reutilizáveis
+│   ├── FileInput.tsx
+│   ├── CandidateAnalyzer.tsx
+│   └── ...
+├── contexts/        # Context API (AuthContext)
+├── hooks/           # Custom hooks
+├── lib/             # Configurações e APIs
+│   ├── api.ts       # Cliente axios
+│   └── utils.ts     # Funções auxiliares
+├── pages/           # Páginas/rotas
+│   ├── LoginPage.tsx
+│   ├── RegisterPage.tsx
+│   ├── DashboardPage.tsx
+│   └── CandidateDashboard.tsx
+├── types/           # Definições TypeScript
+├── App.tsx          # Componente raiz
+└── main.tsx         # Entry point
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 🎨 Estilo e Design
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+O projeto utiliza um design **neobrutalist** com:
+- Bordas grossas e pretas
+- Sombras marcantes
+- Cores contrastantes
+- Layout sem bordas arredondadas
+- Elementos bold e uppercase
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 📄 Licença
+
+Parte do projeto Adequa AI - Sistema de Análise de Currículos com IA
