@@ -1,12 +1,16 @@
 import os
 import json
 import warnings
-from dotenv import load_dotenv
+
+# Try to load dotenv, but make it optional for Hugging Face Spaces
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    print("dotenv not available, using environment variables directly")
 
 warnings.filterwarnings("ignore", message=".*validate_default.*")
-warnings.filterwarnings("ignore", message=".*TRANSFORMERS_CACHE.*")
-
-load_dotenv() 
+warnings.filterwarnings("ignore", message=".*TRANSFORMERS_CACHE.*") 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -157,3 +161,58 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
+
+
+# Gradio interface for Hugging Face Spaces
+if __name__ == "__main__":
+    try:
+        import gradio as gr
+        
+        def create_demo():
+            with gr.Blocks(title="Adequa AI - Resume Analysis") as demo:
+                gr.Markdown("# Adequa AI - Resume Analysis")
+                gr.Markdown("**AI system applied to professional profile evaluation**")
+                
+                gr.Markdown("Esta é uma demonstração da plataforma Adequa AI.")
+                gr.Markdown("Para acessar a aplicação completa, visite: https://adequa-ai-rag-resume-analyzer.vercel.app")
+                
+                with gr.Row():
+                    with gr.Column():
+                        gr.Markdown("""
+                        ## Sobre o Adequa AI
+                        
+                        Adequa AI é uma plataforma inteligente que utiliza RAG (Retrieval-Augmented Generation) e modelos de linguagem avançados para automatizar a análise e triagem de currículos, conectando candidatos qualificados às vagas certas.
+                        
+                        ### Principais Funcionalidades
+                        
+                        **Para Recrutadores:**
+                        - Upload em massa de currículos
+                        - Busca inteligente por habilidades, experiência e localização
+                        - Gestão de vagas com descrições detalhadas
+                        - Análise automática de compatibilidade candidato-vaga em tempo real
+                        - Índices reutilizáveis com vector stores salvos
+                        
+                        **Para Candidatos:**
+                        - Análise de compatibilidade com vagas
+                        - Dashboard personalizado com feedback da IA
+                        - Recomendações de vagas compatíveis com o perfil
+                        
+                        ### Tecnologia
+                        - **RAG com LlamaIndex**: indexação semântica de currículos
+                        - **Groq API**: inferência ultra-rápida com modelos Llama
+                        - **Autenticação JWT**: sistema seguro para candidatos e recrutadores
+                        - **Vector Stores**: persistência de embeddings para consultas eficientes
+                        """)
+                
+                gr.Markdown("---")
+                gr.Markdown("Desenvolvido com ❤️ por Heloisa Cativo")
+            
+            return demo
+        
+        demo = create_demo()
+        demo.launch()
+        
+    except ImportError:
+        print("Gradio not available, running FastAPI server")
+        import uvicorn
+        uvicorn.run(app, host="0.0.0.0", port=7860)
