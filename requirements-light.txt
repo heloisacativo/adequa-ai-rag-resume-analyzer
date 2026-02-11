@@ -2,6 +2,7 @@
 # .env: USE_GROQ=true, GROQ_API_KEY=..., HUGGINGFACE_TOKEN=...
 # Instalação: pip install -r requirements-light.txt
 
+gradio>=5.9.1
 fastapi
 uvicorn[standard]
 python-multipart
