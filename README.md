@@ -3,8 +3,8 @@ title: Adequa AI - Resume Analysis
 emoji: 📄
 colorFrom: blue
 colorTo: green
-sdk: streamlit
-sdk_version: "1.15.2"
+sdk: gradio
+sdk_version: "4.12.0"
 python_version: "3.11"
 app_file: main.py
 pinned: false
