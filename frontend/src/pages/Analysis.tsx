@@ -105,6 +105,14 @@ function Analysis() {
 
   const handleLocalUpload = async () => {
     if (selectedResumes.length === 0) return;
+    if (selectedResumes.length < 2) {
+      toast({
+        title: 'Seleção insuficiente',
+        description: 'É necessário selecionar pelo menos 2 currículos para realizar a análise.',
+        variant: 'error',
+      });
+      return;
+    }
     if (analisarInProgressRef.current) return;
     analisarInProgressRef.current = true;
 
@@ -359,6 +367,14 @@ function Analysis() {
 
   const handleUploadPendingFiles = async () => {
     if (pendingFiles.length === 0) return;
+    if (pendingFiles.length < 2) {
+      toast({
+        title: 'Seleção insuficiente',
+        description: 'É necessário selecionar pelo menos 2 currículos para realizar a análise.',
+        variant: 'error',
+      });
+      return;
+    }
     if (analisarInProgressRef.current) return;
     analisarInProgressRef.current = true;
 
@@ -555,10 +571,10 @@ function Analysis() {
                     <div className="flex flex-col md:flex-row justify-between md:items-center gap-2">
                       <div>
                         <h3 className="text-2xl text-neo-secondary font-black">Adicionar currículos</h3>
-                        <p className="text-neo-secondary/70 font-bold text-sm">Selecione os arquivos PDF. Você pode adicionar até 50 currículos no total.</p>
+                        <p className="text-neo-secondary/70 font-bold text-sm">Selecione os arquivos PDF. Você pode adicionar até 50 currículos no total. Mínimo de 2 para análise.</p>
                       </div>
                       
-                      {pendingFiles.length > 0 && (
+                      {pendingFiles.length >= 2 && (
                         <button
                           onClick={handleUploadPendingFiles}
                           disabled={uploading}
@@ -591,7 +607,7 @@ function Analysis() {
                         <p className="text-gray-500 font-bold text-sm">Selecione os candidatos para compor a base de análise.</p>
                       </div>
                       
-                      {selectedResumes.length > 2 && (
+                      {selectedResumes.length >= 2 && (
                         <div className="flex flex-col items-end gap-1">
                           <button
                             onClick={handleLocalUpload}

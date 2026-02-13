@@ -76,7 +76,17 @@ async def upload_resumes(
     await ensure_upload_user.execute(user_id)
     
     # Adiciona os novos currículos (não remove os existentes; limite total por usuário no use case)
-    result = await use_case.execute(file_data, user_id)
+    try:
+        result = await use_case.execute(file_data, user_id)
+    except Exception as e:
+        # Trata erros de negócio e outros
+        from application.exceptions import BusinessRuleViolationError
+        if isinstance(e, BusinessRuleViolationError):
+            raise HTTPException(status_code=400, detail=str(e))
+        else:
+            # Log do erro e resposta genérica
+            logger.error(f"Erro ao fazer upload de currículos: {e}")
+            raise HTTPException(status_code=500, detail="Erro interno ao processar os currículos")
     
     return UploadResponse(
         message="Arquivos enviados e indexados com sucesso",

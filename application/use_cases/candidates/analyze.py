@@ -9,15 +9,17 @@ from llama_index.core import Settings
 from application.dtos.candidate.analysis import SearchResponseDTO, CandidateResultDTO
 from application.interfaces.ai.indexer import IndexerProtocol
 from application.interfaces.ai.location_analyzer import LocationAnalyzerProtocol
+from application.interfaces.resumes.repositories import ResumeRepositoryProtocol
 
 
 @final
 @dataclass(frozen=True, slots=True, kw_only=True)
-class AnalyzeCandidatesUseCase:
+class SearchCandidatesUseCase:
     """Use case para análise de candidatos via RAG."""
     
     indexer: IndexerProtocol
     location_analyzer: LocationAnalyzerProtocol | None = None
+    resume_repository: ResumeRepositoryProtocol
     
     async def execute(self, query: str, index_id: str) -> SearchResponseDTO:
         """
@@ -30,6 +32,15 @@ class AnalyzeCandidatesUseCase:
         Returns:
             SearchResponseDTO com ranking de candidatos
         """
+        # Validação: verificar se há pelo menos 2 currículos indexados
+        resumes_in_index = await self.resume_repository.get_by_vector_index_id(index_id)
+        if len(resumes_in_index) < 2:
+            from application.exceptions import BusinessRuleViolationError
+            raise BusinessRuleViolationError(
+                f"É necessário ter pelo menos 2 currículos indexados para realizar análises. "
+                f"Atualmente há {len(resumes_in_index)} currículo(s) neste índice."
+            )
+        
         print(f"[DEBUG] Iniciando análise com index_id: {index_id}")
         print(f"[DEBUG] Query: {query}")
         

@@ -320,7 +320,7 @@ function ResumeAnalysis() {
                     </h3>
                     <ul className="space-y-3">
                       {analysis.improvement_tips.map((tip, idx) => (
-                        <li key={idx} className="justify-between items-center bg-white border border-neo-secondary p-3 rounded text-sm font-medium text-neo-secondary flex gap-2">
+                        <li key={idx} className=" items-center bg-white border border-neo-secondary p-3 rounded text-sm font-medium text-neo-secondary flex gap-2">
                           <span className="flex-shrink-0 w-3 h-3 rounded-full bg-neo-secondary text-neo-secondary font-black text-md flex items-center justify-center">{idx + 1}</span>
                           {tip}
                         </li>

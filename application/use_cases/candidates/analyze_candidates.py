@@ -4,12 +4,14 @@ from typing import final
 from application.dtos.candidate.candidate import RankingResultDTO, CandidateAnalysisDTO
 from application.interfaces.ai.indexer import IndexerProtocol
 from application.interfaces.ai.analyzer import AIAnalyzerProtocol
+from application.interfaces.resumes.repositories import ResumeRepositoryProtocol
 
 @final
 @dataclass(frozen=True, slots=True, kw_only=True)
 class AnalyzeCandidatesUseCase:
     indexer: IndexerProtocol
     analyzer: AIAnalyzerProtocol
+    resume_repository: ResumeRepositoryProtocol
     
     async def execute(self, job_description: str, index_id: str) -> RankingResultDTO:
         """
@@ -18,13 +20,18 @@ class AnalyzeCandidatesUseCase:
         3. Analisa cada candidato com LLM
         4. Rankeia por score
         """
-        # 1. Busca chunks
+        resumes_in_index = await self.resume_repository.get_by_vector_index_id(index_id)
+        if len(resumes_in_index) < 2:
+            from application.exceptions import BusinessRuleViolationError
+            raise BusinessRuleViolationError(
+                f"É necessário ter pelo menos 2 currículos indexados para realizar análises. "
+                f"Atualmente há {len(resumes_in_index)} currículo(s) neste índice."
+            )
+        
         chunks = await self.indexer.search(index_id, job_description, top_k=50)
         
-        # 2. Agrupa por arquivo
         candidates_map = self._group_by_candidate(chunks)
         
-        # 3. Analisa cada candidato
         analyses = []
         for file_name, candidate_chunks in candidates_map.items():
             analysis = await self.analyzer.analyze_candidate(
@@ -33,7 +40,6 @@ class AnalyzeCandidatesUseCase:
             )
             analyses.append(analysis)
         
-        # 4. Ordena por score
         ranked = sorted(analyses, key=lambda x: x.score, reverse=True)
         
         return RankingResultDTO(

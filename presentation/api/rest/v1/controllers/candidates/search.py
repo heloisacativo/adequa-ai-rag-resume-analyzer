@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Query, HTTPException
 from dishka.integrations.fastapi import FromDishka, inject
 
-from application.use_cases.candidates.analyze import AnalyzeCandidatesUseCase
+from application.use_cases.candidates.analyze import SearchCandidatesUseCase
 from presentation.api.rest.v1.schemas.candidates import SearchResponseSchema, CandidateResultSchema
 
 router = APIRouter(prefix="/search", tags=["Candidates"])
@@ -13,7 +13,7 @@ router = APIRouter(prefix="/search", tags=["Candidates"])
 async def analyze_candidates(
     query: str = Query(..., description="Descrição da Vaga"),
     index_id: str = Query(..., description="ID do índice"),
-    use_case: FromDishka[AnalyzeCandidatesUseCase] = None,
+    use_case: FromDishka[SearchCandidatesUseCase] = None,
 ):
     """Analisa candidatos baseado em descrição da vaga."""
     try:
@@ -38,4 +38,8 @@ async def analyze_candidates(
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
+        # Trata erros de negócio
+        from application.exceptions import BusinessRuleViolationError
+        if isinstance(e, BusinessRuleViolationError):
+            raise HTTPException(status_code=400, detail=str(e))
         raise HTTPException(status_code=500, detail=str(e))

@@ -7,9 +7,11 @@ import shutil
 
 from application.dtos.resumes.resume import UploadResultDTO, ResumeDTO
 from application.interfaces.ai.indexer import IndexerProtocol
+from application.interfaces.ai.validator import ResumeValidatorProtocol
 from application.interfaces.users.uow import UnitOfWorkProtocol
 from application.interfaces.resumes.repositories import ResumeRepositoryProtocol
 from domain.entities.resumes.resume import ResumeEntity
+from infrastructures.ai.text_extractor import extract_text_from_bytes
 
 @final
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -17,6 +19,7 @@ class UploadResumesUseCase:
     uow: UnitOfWorkProtocol
     repository: ResumeRepositoryProtocol
     indexer: IndexerProtocol
+    validator: ResumeValidatorProtocol
     storage_dir: Path
     s3_storage: Optional[object] = None  # S3StorageService
     sqlite_storage: Optional[object] = None  # SQLiteFileStorageService
@@ -65,6 +68,29 @@ class UploadResumesUseCase:
         for filename, content in files:
             file_path = await self._save_file(filename, content)
             saved_paths.append(file_path)
+        
+        # 1.5. Valida se são currículos
+        validated_files = []
+        for (filename, content), file_path in zip(files, saved_paths):
+            text = extract_text_from_bytes(content, filename)
+            if text is None:
+                # Remove arquivo inválido
+                if file_path.exists():
+                    file_path.unlink()
+                from application.exceptions import BusinessRuleViolationError
+                raise BusinessRuleViolationError(f"Não foi possível extrair texto do arquivo '{filename}'. Verifique se é um PDF, DOCX ou TXT válido.")
+            
+            is_resume = await self.validator.is_resume(text)
+            if not is_resume:
+                # Remove arquivo que não é currículo
+                if file_path.exists():
+                    file_path.unlink()
+                from application.exceptions import BusinessRuleViolationError
+                raise BusinessRuleViolationError(f"O arquivo '{filename}' não parece ser um currículo válido. Por favor, envie apenas currículos profissionais.")
+            
+            validated_files.append(file_path)
+        
+        saved_paths = validated_files
         
         # 2. Prepara arquivos para indexação (baixa do SQLite se necessário)
         print(f"🔍 Preparando {len(saved_paths)} arquivos para indexação...")

@@ -70,6 +70,7 @@ from application.interfaces.ai.ingestor import IngestionProtocol
 from application.interfaces.ai.analyzer import AIAnalyzerProtocol
 from application.interfaces.ai.transformer import TransformerProtocol
 from application.interfaces.ai.location_analyzer import LocationAnalyzerProtocol
+from application.interfaces.ai.validator import ResumeValidatorProtocol
 from application.interfaces.resumes.repositories import ResumeRepositoryProtocol
 from application.interfaces.resumes.resume_group_repository import ResumeGroupRepositoryProtocol
 
@@ -93,7 +94,7 @@ from application.use_cases.resumes.list_resumes_by_group import ListResumesByGro
 from application.use_cases.resumes.set_group_resumes import SetGroupResumesUseCase
 from application.use_cases.candidates.analyze_resume import AnalyzeResumeUseCase
 from application.use_cases.candidates.analyze_stored_resume import AnalyzeStoredResumeUseCase
-from application.use_cases.candidates.analyze import AnalyzeCandidatesUseCase
+from application.use_cases.candidates.analyze import SearchCandidatesUseCase
 from application.use_cases.candidates.create_job_application import CreateJobApplicationUseCase
 from application.use_cases.candidates.list_job_applications import ListJobApplicationsUseCase
 from application.use_cases.candidates.update_job_application_status import UpdateJobApplicationStatusUseCase
@@ -572,6 +573,11 @@ class AIProvider(Provider):
         return OllamaAnalyzer(llm=llm)
     
     @provide(scope=Scope.APP)
+    def get_validator(self, llm: LLM) -> ResumeValidatorProtocol:
+        from infrastructures.ai.resume_validator import ResumeValidator
+        return ResumeValidator(llm=llm)
+    
+    @provide(scope=Scope.APP)
     def get_location_analyzer(self, llm: LLM) -> LocationAnalyzerProtocol:
         from infrastructures.ai.location_analyzer import LocationAnalyzer
         return LocationAnalyzer(llm=llm)
@@ -587,6 +593,7 @@ class ResumeUseCaseProvider(Provider):
         ai_settings: AISettings,
         resume_repository: ResumeRepositoryProtocol,
         uow: UnitOfWorkProtocol,
+        validator: ResumeValidatorProtocol,
     ) -> UploadResumesUseCase:
         from pathlib import Path
 
@@ -641,6 +648,7 @@ class ResumeUseCaseProvider(Provider):
             uow=uow,
             repository=resume_repository,
             indexer=indexer,
+            validator=validator,
             storage_dir=storage_path,
             s3_storage=s3_storage,
             sqlite_storage=sqlite_storage
@@ -806,12 +814,14 @@ class ResumeUseCaseProvider(Provider):
         )
     
     @provide(scope=Scope.REQUEST)
-    def get_analyze_candidates_use_case(
+    def get_search_candidates_use_case(
         self,
         indexer: IndexerProtocol,
         location_analyzer: LocationAnalyzerProtocol,
-    ) -> AnalyzeCandidatesUseCase:
-        return AnalyzeCandidatesUseCase(
+        resume_repository: ResumeRepositoryProtocol,
+    ) -> SearchCandidatesUseCase:
+        return SearchCandidatesUseCase(
             indexer=indexer,
             location_analyzer=location_analyzer,
+            resume_repository=resume_repository,
         )
