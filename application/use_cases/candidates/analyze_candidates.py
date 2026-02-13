@@ -20,6 +20,13 @@ class AnalyzeCandidatesUseCase:
         3. Analisa cada candidato com LLM
         4. Rankeia por score
         """
+        # Validação: verificar tamanho da descrição da vaga
+        if len(job_description.strip()) > 5000:
+            from application.exceptions import BusinessRuleViolationError
+            raise BusinessRuleViolationError(
+                "A descrição da vaga é muito longa. O limite máximo é de 5000 caracteres."
+            )
+        
         resumes_in_index = await self.resume_repository.get_by_vector_index_id(index_id)
         if len(resumes_in_index) < 2:
             from application.exceptions import BusinessRuleViolationError

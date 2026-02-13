@@ -13,6 +13,15 @@ export default function JobForm() {
   // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+
+  const MAX_DESCRIPTION_LENGTH = 5000;
+  const isDescriptionTooLong = description.length > MAX_DESCRIPTION_LENGTH;
+
+  const handleDescriptionChange = (value: string) => {
+    if (value.length <= MAX_DESCRIPTION_LENGTH) {
+      setDescription(value);
+    }
+  };
   const [seniority, setSeniority] = useState<SeniorityLevel>('mid');
   const [location, setLocation] = useState('');
   const [salaryRange, setSalaryRange] = useState('');
@@ -179,11 +188,19 @@ export default function JobForm() {
                 <textarea
                   id="description"
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) => handleDescriptionChange(e.target.value)}
                   placeholder="Descreva a vaga, responsabilidades e o que você busca..."
                   rows={5}
-                  className="textarea textarea-bordered w-full"
+                  className={`textarea textarea-bordered w-full ${isDescriptionTooLong ? 'textarea-error' : ''}`}
                 />
+                <label className="label">
+                  <span className={`label-text-alt ${isDescriptionTooLong ? 'text-error' : ''}`}>
+                    {isDescriptionTooLong 
+                      ? `Descrição muito longa (${description.length}/${MAX_DESCRIPTION_LENGTH} caracteres)`
+                      : `${description.length}/${MAX_DESCRIPTION_LENGTH} caracteres`
+                    }
+                  </span>
+                </label>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -322,7 +339,7 @@ export default function JobForm() {
             >
               Cancelar
             </button>
-            <button type="submit" className="btn btn-primary" disabled={isLoading}>
+            <button type="submit" className="btn btn-primary" disabled={isLoading || isDescriptionTooLong}>
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />

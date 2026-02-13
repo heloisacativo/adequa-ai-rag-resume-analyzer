@@ -9,7 +9,19 @@ export function CandidateAnalyzer({ indexId }: CandidateAnalyzerProps) {
   const [jobDescription, setJobDescription] = useState('');
   const { analyzeCandidates, isAnalyzing, analysisResult } = useCandidateAnalysis();
 
+  const MAX_DESCRIPTION_LENGTH = 5000;
+  const isDescriptionTooLong = jobDescription.length > MAX_DESCRIPTION_LENGTH;
+
+  const handleDescriptionChange = (value: string) => {
+    if (value.length <= MAX_DESCRIPTION_LENGTH) {
+      setJobDescription(value);
+    }
+  };
+
   const handleAnalyze = async () => {
+    if (isDescriptionTooLong) {
+      return;
+    }
     await analyzeCandidates(jobDescription, indexId);
   };
 
@@ -20,21 +32,24 @@ export function CandidateAnalyzer({ indexId }: CandidateAnalyzerProps) {
           <span className="label-text font-semibold">Descrição da Vaga</span>
         </label>
         <textarea
-          className="textarea textarea-bordered h-32"
+          className={`textarea textarea-bordered h-32 ${isDescriptionTooLong ? 'textarea-error' : ''}`}
           placeholder="Descreva a vaga, requisitos técnicos, experiência necessária..."
           value={jobDescription}
-          onChange={(e) => setJobDescription(e.target.value)}
+          onChange={(e) => handleDescriptionChange(e.target.value)}
         />
         <label className="label">
-          <span className="label-text-alt">
-            Quanto mais detalhes, melhor a análise
+          <span className={`label-text-alt ${isDescriptionTooLong ? 'text-error' : ''}`}>
+            {isDescriptionTooLong 
+              ? `Texto muito longo (${jobDescription.length}/${MAX_DESCRIPTION_LENGTH} caracteres)`
+              : `Quanto mais detalhes, melhor a análise (${jobDescription.length}/${MAX_DESCRIPTION_LENGTH})`
+            }
           </span>
         </label>
       </div>
 
       <button
         onClick={handleAnalyze}
-        disabled={!jobDescription.trim() || isAnalyzing}
+        disabled={!jobDescription.trim() || isAnalyzing || isDescriptionTooLong}
         className="btn btn-primary w-full"
       >
         {isAnalyzing ? (

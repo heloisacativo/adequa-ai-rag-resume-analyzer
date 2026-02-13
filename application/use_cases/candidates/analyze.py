@@ -32,6 +32,13 @@ class SearchCandidatesUseCase:
         Returns:
             SearchResponseDTO com ranking de candidatos
         """
+        # Validação: verificar tamanho da descrição da vaga
+        if len(query.strip()) > 5000:
+            from application.exceptions import BusinessRuleViolationError
+            raise BusinessRuleViolationError(
+                "A descrição da vaga é muito longa. O limite máximo é de 5000 caracteres."
+            )
+        
         # Validação: verificar se há pelo menos 2 currículos indexados
         resumes_in_index = await self.resume_repository.get_by_vector_index_id(index_id)
         if len(resumes_in_index) < 2:

@@ -391,6 +391,15 @@ function ApplicationForm({ onSubmit, onCancel, isLoading }: ApplicationFormProps
     description: '',
   });
 
+  const MAX_DESCRIPTION_LENGTH = 5000;
+  const isDescriptionTooLong = formData.description.length > MAX_DESCRIPTION_LENGTH;
+
+  const handleDescriptionChange = (value: string) => {
+    if (value.length <= MAX_DESCRIPTION_LENGTH) {
+      setFormData((prev) => ({ ...prev, description: value }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onSubmit(formData);
@@ -455,13 +464,26 @@ function ApplicationForm({ onSubmit, onCancel, isLoading }: ApplicationFormProps
           Descrição da Vaga
         </label>
         <textarea
-          className="w-full px-3 py-2.5 text-sm font-medium bg-gray-50 text-black border-2 border-black rounded-none focus:outline-none focus:bg-white focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 placeholder:text-gray-400 resize-none"
+          className={cn(
+            "w-full px-3 py-2.5 text-sm font-medium bg-gray-50 text-black border-2 border-black rounded-none focus:outline-none focus:bg-white focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 placeholder:text-gray-400 resize-none",
+            isDescriptionTooLong && "border-red-500"
+          )}
           rows={4}
           placeholder="Cole aqui a descrição da vaga ou detalhes importantes..."
           value={formData.description}
-          onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+          onChange={(e) => handleDescriptionChange(e.target.value)}
           required
         />
+        {isDescriptionTooLong && (
+          <p className="text-red-500 text-xs mt-1">
+            Descrição muito longa ({formData.description.length}/{MAX_DESCRIPTION_LENGTH} caracteres)
+          </p>
+        )}
+        {!isDescriptionTooLong && (
+          <p className="text-gray-500 text-xs mt-1">
+            {formData.description.length}/{MAX_DESCRIPTION_LENGTH} caracteres
+          </p>
+        )}
       </div>
 
       {/* BOTÕES */}
@@ -477,7 +499,7 @@ function ApplicationForm({ onSubmit, onCancel, isLoading }: ApplicationFormProps
         <button
           type="submit"
           className="flex-1 py-2.5 text-sm font-bold uppercase tracking-wide bg-black text-white border-2 border-black shadow-[4px_4px_0px_0px_#22c55e] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#22c55e] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
-          disabled={isLoading}
+          disabled={isLoading || isDescriptionTooLong}
         >
           {isLoading ? 'Salvando...' : 'Salvar Candidatura'}
         </button>

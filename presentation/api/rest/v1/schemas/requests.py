@@ -13,7 +13,7 @@ class LoginRequest(BaseModel):
 # Job schemas
 class CreateJobRequest(BaseModel):
     title: str = Field(..., min_length=2, description="Job title")
-    description: str = Field(..., min_length=10, description="Job description")
+    description: str = Field(..., min_length=10, max_length=5000, description="Job description")
     location: str = Field(..., min_length=2, description="Job location")
 
 

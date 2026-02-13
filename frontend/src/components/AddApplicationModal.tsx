@@ -22,6 +22,15 @@ export function AddApplicationModal() {
     description: '',
   });
 
+  const MAX_DESCRIPTION_LENGTH = 5000;
+  const isDescriptionTooLong = formData.description.length > MAX_DESCRIPTION_LENGTH;
+
+  const handleDescriptionChange = (value: string) => {
+    if (value.length <= MAX_DESCRIPTION_LENGTH) {
+      setFormData(prev => ({ ...prev, description: value }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -215,7 +224,7 @@ export function AddApplicationModal() {
                     <FileText className="w-4 h-4 text-neo-secondary" />
                   </div>
                   <textarea
-                    className="
+                    className={`
                       w-full pl-10 pr-3 py-2.5 
                       text-sm font-medium bg-neo-primary text-neo-secondary
                       border-2 border-neo-secondary rounded-none
@@ -223,12 +232,23 @@ export function AddApplicationModal() {
                       focus:shadow-neo
                       transition-all duration-200
                       placeholder:text-neo-secondary resize-none
-                    "
+                      ${isDescriptionTooLong ? 'border-red-500' : ''}
+                    `}
                     rows={3}
                     placeholder="Detalhes importantes..."
                     value={formData.description}
-                    onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    onChange={e => handleDescriptionChange(e.target.value)}
                   />
+                  {isDescriptionTooLong && (
+                    <p className="text-red-500 text-xs mt-1 ml-1">
+                      Descrição muito longa ({formData.description.length}/{MAX_DESCRIPTION_LENGTH} caracteres)
+                    </p>
+                  )}
+                  {!isDescriptionTooLong && (
+                    <p className="text-gray-500 text-xs mt-1 ml-1">
+                      {formData.description.length}/{MAX_DESCRIPTION_LENGTH} caracteres
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -256,7 +276,7 @@ export function AddApplicationModal() {
                     disabled:opacity-70 disabled:cursor-not-allowed
                     cursor-pointer
                   "
-                  disabled={isLoading}
+                  disabled={isLoading || isDescriptionTooLong}
                 >
                   {isLoading ? 'Salvando...' : 'Salvar Vaga'}
                 </button>
