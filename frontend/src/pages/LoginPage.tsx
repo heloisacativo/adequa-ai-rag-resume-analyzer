@@ -107,7 +107,7 @@ export default function LoginPage() {
                   className="w-full h-full object-contain"
                 />
               </div>
-              <p className="text-xs text-neutral-500 font-medium min-[360px]:mt-2 min-[360px]:text-sm sm:mt-3 sm:text-base text-center max-w-xs min-[360px]:max-w-sm sm:max-w-md mx-auto px-2">
+              <p className="text-xs text-neutral-500 font-medium min-[360px] min-[360px]:text-sm sm:text-base text-center max-w-xs min-[360px]:max-w-sm sm:max-w-md mx-auto px-2">
                 Sistema de IA aplicado à avaliação de perfis profissionais
               </p>
             </div>
