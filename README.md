@@ -1,17 +1,3 @@
----
-title: Adequa AI - Resume Analysis
-emoji: 📄
-colorFrom: blue
-colorTo: green
-sdk: gradio
-sdk_version: "5.9.1"
-python_version: "3.11"
-app_file: main.py
-pinned: false
----
-
-Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
-
 # Adequa AI - MicroSaaS de Análise de Currículos com IA
 
 **Sistema de IA aplicado à avaliação de perfis profissionais**
