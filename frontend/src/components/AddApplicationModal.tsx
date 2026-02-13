@@ -85,14 +85,15 @@ export function AddApplicationModal() {
     <>
       <button
         className="
-          flex items-center gap-2
-          bg-neo-primary text-neo-secondary 
-          border-1 border-neo-secondary 
-          px-4 py-2 rounded-lg
-          font-bold text-sm tracking-wide
+          flex items-center gap-1 sm:gap-2
+          bg-neo-primary text-neo-secondary
+          border-1 border-neo-secondary
+          px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg
+          font-bold text-xs sm:text-sm tracking-wide
           shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
-          hover:bg-neo-primary 
+          hover:bg-neo-primary
           transition-all duration-200 cursor-pointer
+          whitespace-nowrap
         "
         onClick={() => setOpen(true)}
       >
