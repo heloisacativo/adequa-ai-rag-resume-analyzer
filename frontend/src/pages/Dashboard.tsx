@@ -53,8 +53,8 @@ export default function RecruiterDashboard() {
   const activeJobs = jobsData?.jobs.filter(job => job.status === 'active' || job.status === 'open') || [];
   const totalResumes = resumesData?.total || 0;
 
-  // Get recent resumes (sorted by upload date, limit to 4)
   const recentResumes = resumesData?.resumes
+    .filter(r => !/_analise_\d+(_\d+)?\.pdf$/i.test(r.file_name)) // <-- filtro para não mostrar duplicados de análise
     .sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime())
     .slice(0, 4) || [];
 
