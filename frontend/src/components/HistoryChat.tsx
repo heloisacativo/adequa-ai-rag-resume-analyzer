@@ -371,7 +371,7 @@ export default function HistoryChat({ indexId: initialIndexId, openSessionId, on
             </button>
           )}
           <div>
-            <h1 className="text-lg md:text-xl font-black uppercase text-neo-secondary">Chat de Análise</h1>
+            <h1 className="text-lg md:text-xl font-black uppercase text-neo-secondary">Chat</h1>
             <p className="text-xs md:text-sm text-gray-600 font-medium">Utilize IA para analisar currículos e compatibilidade com vagas</p>
           </div>
         </div>
