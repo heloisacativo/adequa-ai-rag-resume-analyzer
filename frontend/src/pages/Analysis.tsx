@@ -437,7 +437,9 @@ function Analysis() {
     const localOnly = localResumes.filter(
       (l) => !dbIds.has(l.id) && !dbFileNames.has(l.file_name)
     );
-    return [...databaseResumes, ...localOnly] as (DatabaseResume | LocalResume)[];
+    // Filtrar currículos duplicados criados para análise (com "_analise_" no nome)
+    const filteredDatabaseResumes = databaseResumes.filter(r => !r.file_name.includes('_analise_'));
+    return [...filteredDatabaseResumes, ...localOnly] as (DatabaseResume | LocalResume)[];
   }, [databaseResumes, localResumes]);
 
   const filteredResumesForSelection = useMemo(() => {
@@ -504,20 +506,12 @@ function Analysis() {
 
   return (
     <ChatProvider indexId={indexId}>
-      <div className="min-h-screen bg-gray-50 font-sans text-black pb-20">
-        <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none z-0" />
+      <div className="min-h-screen bg-gray-50 font-sans text-black">
+        <div className="absolute inset-0 pointer-events-none z-0" />
 
-        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 relative z-10 h-full">
-          
-          <div className="mb-5">
-            <p className="text-gray-600 font-medium">
-              Utilize Inteligência Artificial para analisar e ranquear candidatos.
-            </p>
-          </div>
-
-          
+        <div className="max-w-full mx-auto">     
           {currentStep === 0 && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="m-4 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <button
@@ -607,30 +601,7 @@ function Analysis() {
                         <p className="text-gray-500 font-bold text-sm">Selecione os candidatos para compor a base de análise.</p>
                       </div>
                       
-                      {selectedResumes.length >= 2 && (
-                        <div className="flex flex-col items-end gap-1">
-                          <button
-                            onClick={handleLocalUpload}
-                            disabled={uploading || !selectionCompatibility.canAnalyze}
-                            className={cn(
-                              "cursor-pointer flex items-center gap-2 border-2 border-black px-6 py-3 rounded-lg font-bold uppercase tracking-wide transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)] active:translate-y-[2px] active:shadow-none",
-                              selectionCompatibility.canAnalyze && !uploading
-                                ? "bg-neo-blue text-black hover:bg-blue-200" 
-                                : "bg-gray-200 text-gray-500 cursor-not-allowed opacity-70"
-                            )}
-                            title={!selectionCompatibility.canAnalyze ? "Seleção incompatível para análise" : ""}
-                          >
-                            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-                            {uploading ? 'Processando...' : `Analisar (${selectedResumes.length})`}
-                          </button>
-                          <span className={cn(
-                            "text-xs font-medium",
-                            selectionCompatibility.canAnalyze ? "text-green-600" : "text-red-500"
-                          )}>
-                            {selectionCompatibility.message}
-                          </span>
-                        </div>
-                      )}
+                    
                     </div>
 
                     <div className="">
@@ -738,29 +709,32 @@ function Analysis() {
                       </div>
 
                       <div className="bg-gradient-to-br from-green-50 to-white border-2 border-black rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="p-1.5 bg-neo-primary border border-black rounded">
-                            <Search className="w-4 h-4 text-neo-secondary" />
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-neo-primary border border-black rounded">
+                              <Search className="w-4 h-4 text-neo-secondary" />
+                            </div>
+                            <div>
+                              <label className="text-xs font-black uppercase text-neo-secondary tracking-wide block">
+                                Opção 2: Seleção Manual
+                              </label>
+                              <p className="text-[10px] text-neo-secondary font-medium">Escolha individualmente abaixo</p>
+                            </div>
                           </div>
-                          <div>
-                            <label className="text-xs font-black uppercase text-neo-secondary tracking-wide block">
-                              Opção 2: Seleção Manual
-                            </label>
-                            <p className="text-[10px] text-neo-secondary font-medium">Escolha individualmente abaixo</p>
-                          </div>
+                            <div className="relative w-[350px] max-w-full">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-4 text-gray-400 pointer-events-none" />
+                            <input
+                              type="text"
+                              placeholder="Buscar por nome ou arquivo..."
+                              value={resumeSearchQuery}
+                              onChange={(e) => setResumeSearchQuery(e.target.value)}
+                              className="w-full pl-10 pr-4 py-2.5 border-2 border-black rounded-lg font-medium text-sm placeholder:text-gray-400 focus:border-black focus:outline-none focus:ring-2 focus:ring-black/20 bg-white transition-all hover:border-gray-600"
+                              aria-label="Pesquisar candidatos"
+                            />
+                            </div>
                         </div>
                         
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                          <input
-                            type="text"
-                            placeholder="Buscar por nome ou arquivo..."
-                            value={resumeSearchQuery}
-                            onChange={(e) => setResumeSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 border-2 border-black rounded-lg font-medium text-sm placeholder:text-gray-400 focus:border-black focus:outline-none focus:ring-2 focus:ring-black/20 bg-white transition-all hover:border-gray-600"
-                            aria-label="Pesquisar candidatos"
-                          />
-                        </div>
+                     
                         
                         {!selectedGroupId && selectedResumes.length > 0 && (
                           <div className="mt-2 space-y-1">
@@ -768,9 +742,7 @@ function Analysis() {
                               <CheckCircle className="w-3 h-3" />
                               {selectedResumes.length} selecionado{selectedResumes.length !== 1 ? 's' : ''} manualmente
                             </p>
-                            <p className="text-[10px] text-green-700 font-medium bg-green-50 px-2 py-1 rounded border border-green-200">
-                              ✓ Sistema de análise precisa: Apenas os currículos selecionados serão analisados
-                            </p>
+                            
                           </div>
                         )}
                       </div>
@@ -794,8 +766,8 @@ function Analysis() {
                               className={cn(
                                 "cursor-pointer relative flex flex-col p-2.5 border-2 rounded transition-all duration-200",
                                 isSelected 
-                                  ? "border-black bg-blue-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] -translate-y-[1px]" 
-                                  : "border-black bg-white hover:border-black hover:shadow-sm"
+                                  ? "border-indigo-950 bg-blue-50" 
+                                  : "border-indigo-200 bg-blue-50 hover:border-black hover:shadow-sm"
                               )}
                             >
                               <div className="flex justify-between items-start mb-1.5">
@@ -841,8 +813,8 @@ function Analysis() {
                           className={cn(
                             "cursor-pointer flex items-center gap-2 border-2 border-black px-4 py-2 rounded-lg font-bold text-sm uppercase tracking-wide transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)] active:translate-y-[2px] active:shadow-none",
                             selectedResumes.length >= 2 && !uploading && selectionCompatibility.canAnalyze
-                              ? "bg-neo-blue text-black hover:bg-blue-200"
-                              : "bg-gray-200 text-gray-400 cursor-not-allowed opacity-50"
+                              ? "bg-indigo-900 text-neo-blue hover:bg-indigo-950 text-white"
+                              : "bg-neo-blue text-gray-400 cursor-not-allowed opacity-50"
                           )}
                         >
                           {uploading ? (
@@ -877,19 +849,10 @@ function Analysis() {
           )}
 
           {currentStep === 1 && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white">                
-                <button 
-                  onClick={handleBack}
-                  className="cursor-pointer flex items-center gap-2 px-2 py-2 text-sm font-bold border-2 border-black rounded hover:bg-gray-100 transition-colors sm:mt-0"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Voltar
-                </button>
-              </div>
+            <div className="space-y-6 h-full">
 
-                <div className="bg-white border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden h-full">
-                <HistoryChat indexId={indexId} openSessionId={openSessionId ?? sessionIdFromAnalisar ?? undefined} />
+                <div className="bg-amber-50 rounded-lg overflow-hidden h-full">
+                <HistoryChat indexId={indexId} openSessionId={openSessionId ?? sessionIdFromAnalisar ?? undefined} onBack={handleBack} />
                 </div>
             </div>
           )}

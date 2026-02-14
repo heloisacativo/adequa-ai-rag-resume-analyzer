@@ -151,7 +151,7 @@ function ResumeAnalysis() {
   return (
     <AppLayout>
       <div className="min-h-screen bg-gray-50 font-sans text-black">
-        <div className="w-full px-4 sm:px-6 lg:px-8">
+        <div className="w-full  p-4">
         {/* HEADER DA PÁGINA */}
         <div className="pb-4 min-[360px]:pb-6 sm:pb-8">
           <h1 className="text-responsive-xl font-black uppercase tracking-tighter mb-1">

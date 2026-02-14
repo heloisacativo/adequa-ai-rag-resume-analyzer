@@ -62,7 +62,7 @@ export default function ChatHistory() {
 
   return (
     <AppLayout>
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-6 m-4 animate-fade-in">
         <div>
           <h1 className="text-2xl font-black uppercase text-black flex items-center gap-2">
             <MessageSquare className="w-7 h-7" />

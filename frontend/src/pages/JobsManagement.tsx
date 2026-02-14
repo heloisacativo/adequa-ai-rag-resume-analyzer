@@ -113,7 +113,7 @@ export default function JobsManagement() {
 
   return (
     <AppLayout>
-      <div className="space-y-8 pb-10 font-sans text-black">
+      <div className="space-y-8 m-4 pb-10 font-sans text-black">
         
         {/* HEADER DA PÁGINA */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b-2 border-black pb-6">

@@ -60,7 +60,7 @@ export default function RecruiterDashboard() {
 
   return (
     <AppLayout>
-      <div className="space-y-6 w-full min-w-0">
+      <div className="space-y-6 p-4 w-full min-w-0">
         {/* Header */}
         <div>
             <h1 className="text-4xl font-black uppercase tracking-tighter mb-0.5">Visão Geral</h1>

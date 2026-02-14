@@ -36,7 +36,7 @@ export default function CandidateDashboard() {
 
   return (
     <AppLayout>
-      <div>
+      <div className='p-4'>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-6">
           <h2 className="text-lg sm:text-xl lg:text-2xl text-neo-secondary font-black uppercase">Minhas Candidaturas</h2>
           <div className="flex justify-start sm:justify-end">

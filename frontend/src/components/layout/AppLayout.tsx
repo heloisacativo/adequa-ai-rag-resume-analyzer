@@ -14,6 +14,8 @@ import {
   X,
   MessageSquare,
   FolderOpen,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import adequa from "../../assets/adequa.png";
 import adequaCollapsed from "../../assets/adequa-collapsed-logo.png";
@@ -37,6 +39,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     setSidebarOpen(false);
@@ -74,32 +77,51 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
       <aside
         className={cn(
-          "fixed left-0 top-0 z-40 h-screen h-[100dvh] w-[min(14rem,82vw)] min-[360px]:w-56 lg:w-56 bg-gray-50 border-r-2 border-black flex flex-col transition-transform duration-200 ease-out lg:translate-x-0",
-          sidebarOpen ? "translate-x-0 shadow-[4px_0_24px_rgba(0,0,0,0.15)]" : "-translate-x-full lg:shadow-none"
+          "fixed left-0 top-0 z-40 h-screen h-[100dvh] w-[min(14rem,82vw)] min-[360px]:w-60 lg:w-56 bg-gray-50 border-r-2 border-black flex flex-col transition-transform duration-200 ease-out lg:translate-x-0",
+          sidebarOpen ? "translate-x-0 shadow-[4px_0_24px_rgba(0,0,0,0.15)]" : "-translate-x-full lg:shadow-none",
+          isSidebarCollapsed && "lg:w-25"
         )}
       >
-        <div className="h-12 min-[360px]:h-14 sm:h-16 lg:h-20 flex items-center justify-center px-2 min-[360px]:px-3 sm:px-4 border-b-2 border-black bg-white shrink-0 relative">
-          <img
-            src={adequaCollapsed}
-            alt="Adequa"
-            className="h-6 min-[360px]:h-7 sm:h-8 w-auto object-contain min-w-0 lg:hidden"
-          />
-          <img
-            src={adequa}
-            alt="Adequa"
-            className="hidden lg:block h-8 w-auto max-w-[140px] object-contain min-w-0"
-          />
-          <button
-            type="button"
-            aria-label="Fechar menu"
-            onClick={() => setSidebarOpen(false)}
-            className="absolute right-2 min-[360px]:right-3 sm:right-4 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-gray-100 active:bg-gray-200 lg:hidden shrink-0"
-          >
-            <X className="w-5 h-5 min-[360px]:w-6 min-[360px]:h-6" />
-          </button>
+        <div className="h-12 min-[360px]:h-14 sm:h-16 lg:h-20 flex items-center justify-between px-2 min-[360px]:px-3 sm:px-4 border-b-2 border-black bg-white shrink-0">
+          <div className="flex items-center">
+            <img
+              src={isSidebarCollapsed ? adequaCollapsed : adequa}
+              alt="Adequa"
+              className={cn(
+                "h-6 min-[360px]:h-4 sm:h-4 w-auto object-contain min-w-0",
+                isSidebarCollapsed ? "lg:block" : "lg:hidden"
+              )}
+            />
+            <img
+              src={adequa}
+              alt="Adequa"
+              className={cn(
+                "hidden lg:block h-8 w-auto max-w-[140px] object-contain min-w-0",
+                isSidebarCollapsed && "lg:hidden"
+              )}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              aria-label={isSidebarCollapsed ? "Expandir menu" : "Recolher menu"}
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              className="hidden lg:flex items-center justify-center min-w-[44px] min-h-[44px] rounded-lg hover:bg-gray-100 active:bg-gray-200 shrink-0"
+            >
+              {isSidebarCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+            </button>
+            <button
+              type="button"
+              aria-label="Fechar menu"
+              onClick={() => setSidebarOpen(false)}
+              className="lg:hidden flex items-center justify-center min-w-[44px] min-h-[44px] rounded-lg hover:bg-gray-100 active:bg-gray-200 shrink-0"
+            >
+              <X className="w-5 h-5 min-[360px]:w-6 min-[360px]:h-6" />
+            </button>
+          </div>
         </div>
 
-        <nav className="flex-1 p-2 min-[360px]:p-3 sm:p-4 space-y-1.5 sm:space-y-2 overflow-y-auto overflow-touch custom-scrollbar">
+        <nav className="flex-1 p-2 min-[360px]:p-8 sm:p-4 space-y-1.5 sm:space-y-2 overflow-y-auto overflow-touch custom-scrollbar">
           {navItems.map((item) => {
             const Icon = item.icon;
             
@@ -117,32 +139,36 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 !hasMoreSpecificRoute);
 
             return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  "flex items-center gap-2 min-[360px]:gap-2.5 px-2.5 min-[360px]:px-3 py-2.5 min-[360px]:py-3 sm:py-3 min-h-[44px] border-2 border-black rounded-lg transition-all duration-150 ease-out group",
-                  isActive
-                    ? "bg-neo-secondary shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-x-0.5 -translate-y-0.5"
-                    : "bg-neo-primary hover:bg-gray-100 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 active:bg-gray-200",
-                )}
-              >
-                <Icon
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setSidebarOpen(false)}
                   className={cn(
-                    "w-4 h-4 min-[360px]:w-5 min-[360px]:h-5 flex-shrink-0",
-                    isActive ? "text-black" : "text-gray-600 group-hover:text-black",
-                  )}
-                />
-                <span
-                  className={cn(
-                    "font-bold text-[11px] min-[360px]:text-xs tracking-wide truncate",
-                    isActive ? "text-black" : "text-gray-600 group-hover:text-black",
+                    "flex items-center gap-2 min-[360px]:gap-2.5 px-2.5 min-[360px]:px-3 py-2 min-[360px]:py-2.5 sm:py-4 min-h-10 border-2 border-black rounded-lg group",
+                    isSidebarCollapsed && "justify-center",
+                    isActive
+                      ? "bg-neo-secondary"
+                      : "bg-neo-primary hover:bg-gray-100 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 active:bg-gray-200 transition-all duration-150 ease-out",
                   )}
                 >
-                  {item.label}
-                </span>
-              </NavLink>
+                  <span className="flex items-center justify-center w-6 h-6">
+                    <Icon
+                      className={cn(
+                        "w-3 h-3 min-[360px]:w-4 min-[360px]:h-4 shrink-0",
+                        isActive ? "text-black" : "text-gray-600 group-hover:text-black",
+                      )}
+                    />
+                  </span>
+                  <span
+                    className={cn(
+                      "font-bold text-[11px] min-[360px]:text-xs tracking-wide truncate",
+                      isSidebarCollapsed ? "lg:hidden" : "",
+                      isActive ? "text-black" : "text-gray-600 group-hover:text-black",
+                    )}
+                  >
+                    {item.label}
+                  </span>
+                </NavLink>
             );
           })}
         </nav>
@@ -177,13 +203,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="hidden lg:block shrink-0 p-2 min-[360px]:p-3 sm:p-4 border-t-2 border-black bg-white">
-          <div className="flex items-center gap-2 w-full px-2 py-2.5 border-2 border-black rounded-lg bg-white">
+          <div className={cn("flex items-center gap-2 w-full px-2 py-2.5 border-2 border-black rounded-lg bg-white", isSidebarCollapsed && "lg:flex-col lg:items-center lg:gap-1")}>
             <div className="avatar placeholder shrink-0">
               <div className="bg-neo-primary text-black border border-black rounded-lg w-9 h-9 flex items-center justify-center text-sm font-black">
                 {user ? getInitials(user.full_name) : <User className="w-5 h-5" />}
               </div>
             </div>
-            <div className="min-w-0 flex-1 text-left">
+            <div className={cn("min-w-0 flex-1 text-left", isSidebarCollapsed && "lg:hidden")}>
               <div className="text-xs font-black uppercase leading-none truncate block">
                 {user?.full_name?.split(" ")[0]}
               </div>
@@ -194,17 +220,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={handleLogout}
-              className="cursor-pointer shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg font-bold text-neo-secondary hover:bg-gray-100 active:bg-gray-200 transition-colors text-[10px] uppercase"
+              className={cn("cursor-pointer shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg font-bold text-neo-secondary hover:bg-gray-100 active:bg-gray-200 transition-colors text-[10px] uppercase", isSidebarCollapsed && "lg:w-full lg:justify-center")}
               title="Sair da conta"
             >
               <LogOut className="w-3.5 h-3.5" />
-              Sair
+              <span className={cn("", isSidebarCollapsed && "lg:hidden")}>Sair</span>
             </button>
           </div>
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col min-h-screen min-h-[100dvh] w-full min-w-0 ml-0 lg:ml-56">
+      <div className={cn("flex-1 flex flex-col min-h-screen min-h-[100dvh] w-full min-w-0 ml-0", isSidebarCollapsed ? "lg:ml-24" : "lg:ml-56")}>
         {/* HEADER DO APP */}
         <header
           className={cn(
@@ -229,7 +255,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
          
         </header>
 
-        <main className="page-padding">
+        <main className="">
           {children}
         </main>
       </div>

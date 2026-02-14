@@ -53,13 +53,15 @@ export default function ResumesList() {
   const { toast } = useToast();
   const { user } = useAuth();
   const { resumes: resumesFromApi, isLoading: loading, error: resumesError, invalidate } = useResumes(user?.id);
-  const resumes: DatabaseResume[] = (Array.isArray(resumesFromApi) ? resumesFromApi : []).map((r) => ({
-    resume_id: r.resume_id,
-    candidate_name: r.candidate_name,
-    file_name: r.file_name,
-    uploaded_at: r.uploaded_at,
-    is_indexed: r.is_indexed,
-  }));
+  const resumes: DatabaseResume[] = (Array.isArray(resumesFromApi) ? resumesFromApi : [])
+    .filter(r => !/_analise_\d+(_\d+)?\.pdf$/i.test(r.file_name)) // Remove duplicados de análise
+    .map((r) => ({
+      resume_id: r.resume_id,
+      candidate_name: r.candidate_name,
+      file_name: r.file_name,
+      uploaded_at: r.uploaded_at,
+      is_indexed: r.is_indexed,
+    }));
 
   useEffect(() => {
     setMounted(true);
@@ -192,7 +194,7 @@ export default function ResumesList() {
 
   return (
     <AppLayout>
-      <div className="space-y-4 sm:space-y-6 md:space-y-8 pb-6 sm:pb-10 font-sans text-black">
+      <div className="p-4 space-y-4 sm:space-y-6 md:space-y-8 pb-6 sm:pb-10 font-sans text-black">
         {/* HEADER DA PÁGINA */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 sm:gap-4 border-b-2 border-black pb-4 sm:pb-6">
           <div className="min-w-0">

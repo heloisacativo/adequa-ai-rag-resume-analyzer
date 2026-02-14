@@ -127,7 +127,7 @@ export default function ResumesGroups() {
 
   return (
     <AppLayout>
-      <div className="space-y-8 pb-10 font-sans text-black">
+      <div className="p-4 space-y-8 pb-10 font-sans text-black">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b-2 border-black pb-6">
           <div>
             <h1 className="text-4xl font-black uppercase tracking-tighter mb-2">Grupos de currículos</h1>

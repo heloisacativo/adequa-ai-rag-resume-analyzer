@@ -3,6 +3,7 @@ from pathlib import Path
 from uuid import UUID
 import os
 import logging
+import urllib.parse
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from fastapi.responses import FileResponse
@@ -257,7 +258,7 @@ async def download_resume(
             return StreamingResponse(
                 io.BytesIO(file_content),
                 media_type='application/octet-stream',
-                headers={"Content-Disposition": f"attachment; filename={resume.file_name}"}
+                headers={"Content-Disposition": f"attachment; filename*=UTF-8''{urllib.parse.quote(resume.file_name)}"}
             )
             
         except FileNotFoundError:
@@ -292,7 +293,7 @@ async def download_resume(
             return StreamingResponse(
                 io.BytesIO(file_content),
                 media_type='application/octet-stream',
-                headers={"Content-Disposition": f"attachment; filename={resume.file_name}"}
+                headers={"Content-Disposition": f"attachment; filename*=UTF-8''{urllib.parse.quote(resume.file_name)}"}
             )
             
         except FileNotFoundError:
@@ -307,7 +308,7 @@ async def download_resume(
         
         return FileResponse(
             path=resume.file_path,
-            filename=resume.file_name,
+            filename=urllib.parse.quote(resume.file_name),
             media_type='application/octet-stream'
         )
 
